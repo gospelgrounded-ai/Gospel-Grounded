@@ -4,12 +4,12 @@ import * as readline from "readline";
 import { config } from "dotenv";
 config();
 
-import { transcribeVideo, shortenWordGaps } from "./transcribe";
+import { transcribeVideo } from "./transcribe";
 import { planGraphics, buildEditPlan } from "./compose";
+import { cutVideo } from "./cutter";
 import { renderVideo } from "./render";
 import { EditPlan } from "./types";
 
-const MAX_GAP = parseFloat(process.env.MAX_WORD_GAP ?? "0.2");
 const OUTPUT_DIR = process.env.OUTPUT_DIR ?? "./out";
 
 function ask(question: string): Promise<string> {
@@ -70,15 +70,20 @@ async function run() {
 
 async function buildPlan(videoPath: string, videoTitle: string, cachePath: string): Promise<EditPlan> {
   const { transcript: rawTranscript, duration } = await transcribeVideo(videoPath);
-
   console.log(`\nTranscription complete. Duration: ${duration.toFixed(1)}s`);
-  console.log(`Shortening word gaps > ${MAX_GAP}s...`);
-  const transcript = shortenWordGaps(rawTranscript, MAX_GAP);
+
+  console.log("\nRemoving filler words and shortening long pauses...");
+  const { cutVideoPath, adjustedTranscript, cutDuration } = await cutVideo(
+    videoPath,
+    rawTranscript,
+    duration,
+    OUTPUT_DIR
+  );
 
   console.log("\nAsking Claude to plan graphics...");
-  const graphics = await planGraphics(transcript, videoTitle);
+  const graphics = await planGraphics(adjustedTranscript, videoTitle);
 
-  const plan = buildEditPlan(videoPath, transcript, graphics, duration);
+  const plan = buildEditPlan(cutVideoPath, adjustedTranscript, graphics, cutDuration);
 
   if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   fs.writeFileSync(cachePath, JSON.stringify(plan, null, 2));

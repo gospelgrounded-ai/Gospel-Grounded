@@ -11,6 +11,7 @@ import { LowerThird } from "./animations/LowerThird";
 import { BulletList } from "./animations/BulletList";
 import { ComparisonChart } from "./animations/ComparisonChart";
 import { TitleCard } from "./animations/TitleCard";
+import { Subtitle } from "./animations/Subtitle";
 
 interface Props {
   plan: EditPlan | null;
@@ -60,6 +61,7 @@ export const VideoComposition: React.FC<Props> = ({ plan }) => {
       {plan.graphics.map((cue, i) => (
         <GraphicSequence key={i} cue={cue} fps={fps} />
       ))}
+      <Subtitle transcript={plan.transcript} />
     </AbsoluteFill>
   );
 };
