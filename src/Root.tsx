@@ -13,7 +13,7 @@ export const RemotionRoot: React.FC = () => {
   return (
     <Composition
       id="VideoComposition"
-      component={VideoComposition}
+      component={VideoComposition as unknown as React.ComponentType<Record<string, unknown>>}
       durationInFrames={Math.ceil(durationInSeconds * fps)}
       fps={fps}
       width={1920}

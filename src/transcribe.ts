@@ -40,15 +40,19 @@ export async function transcribeAudio(audioPath: string): Promise<Transcript> {
     timestamp_granularities: ["segment", "word"],
   });
 
+  // Whisper returns word-level timestamps at the top level, not nested in segments.
+  // We redistribute them into segments by time-range match.
+  const allWords = ((response as { words?: { word: string; start: number; end: number }[] }).words ?? []).map((w) => ({
+    word: w.word,
+    start: w.start,
+    end: w.end,
+  }));
+
   const segments: TranscriptSegment[] = (response.segments ?? []).map((seg) => ({
     text: seg.text.trim(),
     start: seg.start,
     end: seg.end,
-    words: (seg.words ?? []).map((w) => ({
-      word: w.word,
-      start: w.start,
-      end: w.end,
-    })),
+    words: allWords.filter((w) => w.start >= seg.start - 0.01 && w.end <= seg.end + 0.1),
   }));
 
   return {

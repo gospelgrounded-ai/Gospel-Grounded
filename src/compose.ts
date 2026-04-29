@@ -70,7 +70,7 @@ Plan the graphics for this video. Return a JSON object with a "graphics" array.`
   if (!jsonMatch) throw new Error("Claude did not return valid JSON for graphics plan");
 
   const parsed = EditPlanSchema.parse(JSON.parse(jsonMatch[0]));
-  return parsed.graphics as GraphicCue[];
+  return parsed.graphics as unknown as GraphicCue[];
 }
 
 export function buildEditPlan(
