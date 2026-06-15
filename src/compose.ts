@@ -4,12 +4,13 @@ import { z } from "zod";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
+// passthrough() keeps any extra fields (e.g. when Claude puts data fields flat instead of nested)
 const GraphicCueSchema = z.object({
   type: z.enum(["text_overlay", "lower_third", "bullet_list", "comparison_chart", "title_card"]),
   startTime: z.number(),
   endTime: z.number(),
-  data: z.record(z.unknown()),
-});
+  data: z.record(z.unknown()).optional(),
+}).passthrough();
 
 const ColorGradeSchema = z.object({
   preset: z.enum(["cinematic", "warm", "cool", "punchy", "natural"]),
@@ -45,12 +46,21 @@ const SYSTEM_PROMPT = `You are a professional video editor AI for long-form YouT
 Your output must be valid JSON with exactly four keys: graphics, colorGrade, zoomCues, cutPoints.
 
 == GRAPHICS ==
-Types available:
+Each graphic object MUST have exactly these four fields: type, startTime, endTime, data.
+The "data" field is a nested object — never put data fields at the top level of the graphic.
+
+Example of CORRECT format:
+{ "type": "title_card", "startTime": 0, "endTime": 5, "data": { "title": "Faith vs Works", "subtitle": "A Biblical Study" } }
+{ "type": "text_overlay", "startTime": 45, "endTime": 50, "data": { "text": "Faith without works is dead", "emphasis": true } }
+{ "type": "lower_third", "startTime": 90, "endTime": 95, "data": { "title": "James 2:17", "subtitle": "New Testament" } }
+{ "type": "bullet_list", "startTime": 120, "endTime": 126, "data": { "heading": "Key Points", "items": ["Point one", "Point two", "Point three"] } }
+
+Data shape per type:
+- title_card: { title: string, subtitle?: string }
 - text_overlay: { text: string, emphasis?: boolean }
 - lower_third: { title: string, subtitle?: string }
 - bullet_list: { heading?: string, items: string[] }
 - comparison_chart: { leftLabel: string, rightLabel: string, rows: [{label, left, right}] }
-- title_card: { title: string, subtitle?: string }
 
 Rules:
 - Space graphics at least 3 seconds apart
@@ -128,8 +138,18 @@ Plan the full edit. Return JSON with "graphics", "colorGrade", "zoomCues", and "
   if (!jsonMatch) throw new Error("Claude did not return valid JSON for edit plan");
 
   const parsed = EditPlanSchema.parse(JSON.parse(jsonMatch[0]));
+
+  // Normalise graphics: Claude sometimes returns type-specific fields flat on the object
+  // (e.g. { type, startTime, endTime, title, subtitle }) instead of nested under "data".
+  // This handles both formats.
+  const graphics = parsed.graphics.map((g: Record<string, unknown>) => {
+    if (g.data && typeof g.data === "object") return g; // already correct shape
+    const { type, startTime, endTime, ...rest } = g;
+    return { type, startTime, endTime, data: rest };
+  }) as unknown as GraphicCue[];
+
   return {
-    graphics: parsed.graphics as unknown as GraphicCue[],
+    graphics,
     colorGrade: parsed.colorGrade as ColorGradeSettings,
     zoomCues: parsed.zoomCues as ZoomCue[],
     cutPoints: (parsed.cutPoints as CutPoint[]).sort((a, b) => a.startTime - b.startTime),
