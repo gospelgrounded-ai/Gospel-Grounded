@@ -7,7 +7,8 @@
     "studio": "npx remotion studio src/Root.tsx",
     "render": "npx remotion render src/Root.tsx VideoComposition out/video.mp4",
     "transcribe": "ts-node src/transcribe.ts",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "carousel": "cd carousel-app && npm run dev"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
