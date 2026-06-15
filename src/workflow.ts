@@ -18,10 +18,11 @@ function ask(question: string): Promise<string> {
 }
 
 export async function runPipeline(
-  videoPath: string,
+  videoPath: string,          // filesystem path for FFmpeg (audio extraction)
   videoTitle: string,
   outputDir: string,
-  onProgress: (msg: string) => void = console.log
+  onProgress: (msg: string) => void = console.log,
+  remotionVideoUrl?: string   // HTTP URL for Remotion renderer (falls back to videoPath)
 ): Promise<string> {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
@@ -32,8 +33,10 @@ export async function runPipeline(
   onProgress("Planning edits with Claude (color grade, zooms, cuts, graphics)...");
   const { graphics, colorGrade, zoomCues, cutPoints } = await planGraphics(transcript, videoTitle);
 
+  // EditPlan.videoPath must be accessible by Remotion's Chromium renderer via HTTP
+  const planVideoPath = remotionVideoUrl ?? videoPath;
   const plan = buildEditPlan(
-    videoPath, transcript, graphics, colorGrade, zoomCues, cutPoints, duration
+    planVideoPath, transcript, graphics, colorGrade, zoomCues, cutPoints, duration
   );
 
   const planCachePath = path.join(outputDir, `${videoTitle}.plan.json`);

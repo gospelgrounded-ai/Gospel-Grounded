@@ -8,20 +8,29 @@ config();
 import { createJob, updateJob, getJob, listJobs, jobEmitter, Job } from "./jobs";
 import { runPipeline } from "./workflow";
 
+const PORT = parseInt(process.env.SERVER_PORT ?? "3001");
+const UPLOADS_DIR = path.resolve("./uploads");
+
 const app = express();
 
+// Multer saves to ./uploads/ with a random filename (no extension)
 const upload = multer({
-  dest: "./uploads/",
+  dest: UPLOADS_DIR,
   limits: { fileSize: 10 * 1024 ** 3 }, // 10 GB for long-form video
 });
 
 app.use(express.static(path.join(__dirname, "../public")));
 app.use(express.json());
 
+// Serve uploaded videos over HTTP so Remotion's renderer can fetch them
+// (Remotion can't read files from the local filesystem directly during render)
+app.use("/uploads", express.static(UPLOADS_DIR));
+
 async function processJob(
   jobId: string,
-  videoPath: string,
-  originalName: string
+  fsPath: string,         // absolute filesystem path for FFmpeg
+  originalName: string,
+  remotionUrl: string     // HTTP URL for Remotion renderer
 ): Promise<void> {
   const outputDir = process.env.OUTPUT_DIR ?? "./out";
   const videoTitle = path.basename(originalName, path.extname(originalName));
@@ -30,7 +39,7 @@ async function processJob(
     updateJob(jobId, { status: "transcribing", progress: "Extracting audio and transcribing..." });
 
     const outputPath = await runPipeline(
-      videoPath,
+      fsPath,
       videoTitle,
       outputDir,
       (msg) => {
@@ -44,7 +53,8 @@ async function processJob(
           status: matched ? matched[1] : undefined,
           progress: msg,
         });
-      }
+      },
+      remotionUrl
     );
 
     updateJob(jobId, { status: "done", progress: "Done! Your video is ready to download.", outputPath });
@@ -60,12 +70,22 @@ app.post("/upload", upload.single("video"), (req, res) => {
     res.status(400).json({ error: "No video file uploaded" });
     return;
   }
-  // Resolve to absolute path — Remotion's webpack server can't resolve relative paths
-  const absolutePath = path.resolve(req.file.path);
+
+  // Rename to preserve the original extension so FFmpeg and Remotion detect the codec
+  const ext = path.extname(req.file.originalname).toLowerCase() || ".mp4";
+  const namedFile = req.file.path + ext;
+  fs.renameSync(req.file.path, namedFile);
+
+  // Pass an HTTP URL so Remotion's Chromium renderer can fetch the video during rendering
+  const videoUrl = `http://localhost:${PORT}/uploads/${path.basename(namedFile)}`;
+  // Use the absolute filesystem path for FFmpeg (audio extraction)
+  const absolutePath = path.resolve(namedFile);
+
   const job = createJob(absolutePath);
   res.json({ jobId: job.id });
-  // Fire-and-forget — don't await
-  processJob(job.id, absolutePath, req.file.originalname);
+
+  // FFmpeg reads the local file; Remotion fetches via HTTP from our Express server
+  processJob(job.id, absolutePath, req.file.originalname, videoUrl);
 });
 
 // SSE status stream — keeps mobile browser updated during long processing
@@ -121,7 +141,6 @@ app.get("/api/jobs", (_req, res) => {
   res.json(listJobs());
 });
 
-const PORT = parseInt(process.env.SERVER_PORT ?? "3001");
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`\nGospel Grounded upload server running at http://0.0.0.0:${PORT}`);
   console.log(`Open http://<your-machine-ip>:${PORT} on your phone to upload videos.\n`);
