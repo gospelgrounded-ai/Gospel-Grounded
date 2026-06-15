@@ -44,7 +44,7 @@ export async function runPipeline(
 
   onProgress("Rendering final video with Remotion...");
   const outputPath = path.join(outputDir, `${videoTitle}_edited.mp4`);
-  await renderVideo(plan, outputPath);
+  await renderVideo(plan, outputPath, onProgress);
 
   return outputPath;
 }

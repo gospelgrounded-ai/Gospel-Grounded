@@ -4,35 +4,56 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { EditPlan } from "./types";
 
-export async function renderVideo(plan: EditPlan, outputPath: string): Promise<string> {
+export async function renderVideo(
+  plan: EditPlan,
+  outputPath: string,
+  onProgress?: (msg: string) => void
+): Promise<string> {
   const outputDir = path.dirname(outputPath);
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  console.log("Bundling Remotion composition...");
+  const log = (msg: string) => {
+    console.log(msg);
+    onProgress?.(msg);
+  };
+
+  log("Bundling Remotion composition (this takes 2–5 min on first run)...");
   const bundled = await bundle({
     entryPoint: path.resolve(__dirname, "Root.tsx"),
     webpackOverride: (config) => config,
+    onProgress: (pct) => {
+      process.stdout.write(`\r  Webpack: ${pct}%   `);
+    },
   });
+  process.stdout.write("\n");
+  log("Bundle complete. Loading composition...");
 
-  console.log("Selecting composition...");
   const composition = await selectComposition({
     serveUrl: bundled,
     id: "VideoComposition",
     inputProps: { plan },
   });
 
-  console.log(`Rendering video to ${outputPath}...`);
+  const totalFrames = composition.durationInFrames;
+  log(`Rendering ${totalFrames} frames to ${outputPath}...`);
+
   await renderMedia({
     composition,
     serveUrl: bundled,
     codec: "h264",
     outputLocation: outputPath,
     inputProps: { plan },
-    onProgress: ({ progress }) => {
-      process.stdout.write(`\rRendering: ${(progress * 100).toFixed(1)}%`);
+    onProgress: ({ renderedFrames, progress }) => {
+      const pct = (progress * 100).toFixed(1);
+      process.stdout.write(`\r  Frames: ${renderedFrames}/${totalFrames} (${pct}%)   `);
+      // Push a throttled update to the phone every ~5%
+      if (renderedFrames % Math.max(1, Math.floor(totalFrames / 20)) === 0) {
+        onProgress?.(`Rendering video... ${pct}% (${renderedFrames}/${totalFrames} frames)`);
+      }
     },
   });
 
-  console.log("\nRender complete.");
+  process.stdout.write("\n");
+  log("Render complete.");
   return outputPath;
 }
