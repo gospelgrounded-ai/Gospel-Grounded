@@ -57,10 +57,37 @@ export interface TitleCardData {
   subtitle?: string;
 }
 
+export type ColorGradePreset = "cinematic" | "warm" | "cool" | "punchy" | "natural";
+
+export interface ColorGradeSettings {
+  preset: ColorGradePreset;
+  brightness: number;
+  contrast: number;
+  saturate: number;
+  sepia: number;
+}
+
+export interface ZoomCue {
+  startTime: number;
+  endTime: number;
+  scale: number;
+  originX: number;
+  originY: number;
+}
+
+export interface CutPoint {
+  startTime: number;
+  endTime: number;
+  reason: string;
+}
+
 export interface EditPlan {
   videoPath: string;
   transcript: Transcript;
   graphics: GraphicCue[];
+  colorGrade: ColorGradeSettings;
+  zoomCues: ZoomCue[];
+  cutPoints: CutPoint[];
   fps: number;
   durationInSeconds: number;
 }

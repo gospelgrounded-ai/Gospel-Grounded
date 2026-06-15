@@ -13,7 +13,8 @@ export async function extractAudio(videoPath: string): Promise<string> {
     ffmpeg(videoPath)
       .noVideo()
       .audioCodec("libmp3lame")
-      .audioBitrate("128k")
+      .audioChannels(1)
+      .audioBitrate("64k")
       .output(audioPath)
       .on("end", () => resolve(audioPath))
       .on("error", reject)
@@ -44,7 +45,7 @@ export async function transcribeAudio(audioPath: string): Promise<Transcript> {
     text: seg.text.trim(),
     start: seg.start,
     end: seg.end,
-    words: (seg.words ?? []).map((w) => ({
+    words: ((seg as any).words ?? []).map((w: any) => ({
       word: w.word,
       start: w.start,
       end: w.end,
