@@ -24,14 +24,14 @@ const ZoomCueSchema = z.object({
   startTime: z.number(),
   endTime: z.number(),
   scale: z.number().min(1.0).max(1.3),
-  originX: z.number().min(0).max(1),
-  originY: z.number().min(0).max(1),
+  originX: z.number().min(0).max(1).optional().default(0.5),
+  originY: z.number().min(0).max(1).optional().default(0.5),
 });
 
 const CutPointSchema = z.object({
   startTime: z.number(),
   endTime: z.number(),
-  reason: z.string(),
+  reason: z.string().optional().default("pause"),
 });
 
 const EditPlanSchema = z.object({
