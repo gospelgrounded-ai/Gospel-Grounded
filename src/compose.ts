@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Transcript, GraphicCue, EditPlan, ColorGradeSettings, ZoomCue, CutPoint } from "./types";
 import { z } from "zod";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
 const GraphicCueSchema = z.object({
   type: z.enum(["text_overlay", "lower_third", "bullet_list", "comparison_chart", "title_card"]),

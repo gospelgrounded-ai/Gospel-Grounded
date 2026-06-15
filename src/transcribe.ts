@@ -5,7 +5,7 @@ import ffmpeg from "fluent-ffmpeg";
 import OpenAI from "openai";
 import { Transcript, TranscriptSegment } from "./types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY ?? "" });
 
 export async function extractAudio(videoPath: string): Promise<string> {
   const audioPath = path.join(os.tmpdir(), `gg_audio_${Date.now()}.mp3`);
