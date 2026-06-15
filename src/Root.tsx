@@ -1,10 +1,10 @@
 import React from "react";
-import { Composition, getInputProps } from "remotion";
+import { Composition, getInputProps, registerRoot } from "remotion";
 import { VideoComposition } from "./VideoComposition";
 import { EditPlan } from "./types";
 import { computeEditedDuration } from "./editUtils";
 
-export const RemotionRoot: React.FC = () => {
+const RemotionRoot: React.FC = () => {
   const inputProps = getInputProps() as { plan?: EditPlan };
   const plan = inputProps?.plan;
 
@@ -25,3 +25,5 @@ export const RemotionRoot: React.FC = () => {
     />
   );
 };
+
+registerRoot(RemotionRoot);
