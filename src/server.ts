@@ -60,10 +60,12 @@ app.post("/upload", upload.single("video"), (req, res) => {
     res.status(400).json({ error: "No video file uploaded" });
     return;
   }
-  const job = createJob(req.file.path);
+  // Resolve to absolute path — Remotion's webpack server can't resolve relative paths
+  const absolutePath = path.resolve(req.file.path);
+  const job = createJob(absolutePath);
   res.json({ jobId: job.id });
   // Fire-and-forget — don't await
-  processJob(job.id, req.file.path, req.file.originalname);
+  processJob(job.id, absolutePath, req.file.originalname);
 });
 
 // SSE status stream — keeps mobile browser updated during long processing
