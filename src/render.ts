@@ -41,6 +41,8 @@ export async function renderVideo(
     composition,
     serveUrl: bundled,
     codec: "h264",
+    pixelFormat: "yuv420p",   // critical for broad player compatibility (config file is CLI-only)
+    imageFormat: "jpeg",
     outputLocation: outputPath,
     inputProps: { plan },
     onProgress: ({ renderedFrames, progress }) => {
