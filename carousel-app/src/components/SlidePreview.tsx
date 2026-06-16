@@ -1,14 +1,15 @@
 import React, { useRef, useState } from 'react';
 import * as htmlToImage from 'html-to-image';
-import type { Slide } from '../types';
+import type { Slide, Theme } from '../types';
 import { SlideCard } from './SlideCard';
 
 interface Props {
   slides: Slide[];
   topic: string;
+  theme?: Theme;
 }
 
-export function SlidePreview({ slides, topic }: Props) {
+export function SlidePreview({ slides, topic, theme }: Props) {
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [downloading, setDownloading] = useState<number | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
@@ -105,7 +106,7 @@ export function SlidePreview({ slides, topic }: Props) {
               }}
               style={{ lineHeight: 0 }}
             >
-              <SlideCard slide={slide} index={i} total={slides.length} />
+              <SlideCard slide={slide} index={i} total={slides.length} theme={theme} />
             </div>
             <button
               onClick={() => downloadSlide(i)}

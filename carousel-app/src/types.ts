@@ -30,9 +30,12 @@ export interface CTASlide {
 
 export type Slide = CoverSlide | PointSlide | ScriptureSlide | CalloutSlide | CTASlide;
 
+export type Theme = 'warm' | 'dark' | 'forest' | 'terra';
+
 export interface GenerateRequest {
   topic: string;
   style?: 'inspirational' | 'educational' | 'devotional';
+  theme?: Theme;
 }
 
 export interface GenerateResponse {

@@ -1,355 +1,299 @@
 import React from 'react';
-import type { Slide } from '../types';
+import type { Slide, Theme } from '../types';
 
 interface Props {
   slide: Slide;
   index: number;
   total: number;
+  theme?: Theme;
 }
 
-// All dimensions designed for 400x400 display.
-// html-to-image exports at pixelRatio 2.7 → ~1080x1080px Instagram square.
 const S = 400;
 
-const base: React.CSSProperties = {
-  width: S,
-  height: S,
-  position: 'relative',
-  overflow: 'hidden',
-  fontFamily: "'Inter', system-ui, sans-serif",
-  flexShrink: 0,
+// Each theme has two alternating backgrounds (light/dark) + accent color
+const THEMES = {
+  warm: {
+    bg1: '#f0e6cc', text1: '#1a1008', // cream
+    bg2: '#1a1008', text2: '#f0e6cc', // dark brown
+    accent: '#c44820',
+    grain: 0.07,
+  },
+  dark: {
+    bg1: '#120e08', text1: '#f0e0b8', // espresso
+    bg2: '#f0e0b8', text2: '#120e08', // pale gold
+    accent: '#c8a028',
+    grain: 0.06,
+  },
+  forest: {
+    bg1: '#e8dfc0', text1: '#1a2010', // parchment
+    bg2: '#1e2a14', text2: '#e8dfc0', // deep green
+    accent: '#5a7c28',
+    grain: 0.07,
+  },
+  terra: {
+    bg1: '#c45020', text1: '#f5e8c0', // terracotta
+    bg2: '#f5e8c0', text2: '#1a0f05', // cream
+    accent: '#1a0f05',
+    grain: 0.05,
+  },
 };
 
-const RED = '#e94560';
-const GOLD = '#f4a832';
-const WHITE = '#ffffff';
-const MUTED = 'rgba(255,255,255,0.35)';
-
-function SlideCounter({ index, total }: { index: number; total: number }) {
+// Subtle grain texture overlay using SVG feTurbulence
+function Grain({ opacity }: { opacity: number }) {
   return (
     <div
       style={{
         position: 'absolute',
-        top: 20,
-        right: 24,
-        fontSize: 11,
-        fontWeight: 600,
-        color: MUTED,
-        letterSpacing: '0.08em',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 5,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        opacity,
+        mixBlendMode: 'overlay',
+        backgroundSize: '160px 160px',
       }}
-    >
-      {index + 1} / {total}
-    </div>
+    />
   );
 }
 
-function Brand() {
+function Handle({ color }: { color: string }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 18,
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        fontSize: 9,
-        fontWeight: 700,
-        color: MUTED,
-        letterSpacing: '0.22em',
-        textTransform: 'uppercase',
-      }}
-    >
-      Gospel Grounded
+    <div style={{
+      position: 'absolute',
+      bottom: 16,
+      left: 0,
+      right: 0,
+      textAlign: 'center',
+      fontSize: 9,
+      fontWeight: 700,
+      color,
+      letterSpacing: '0.22em',
+      textTransform: 'uppercase',
+      opacity: 0.4,
+      zIndex: 10,
+      fontFamily: "'Inter', system-ui, sans-serif",
+    }}>
+      @gospelgrounded
     </div>
   );
 }
 
-export function SlideCard({ slide, index, total }: Props) {
+function Counter({ index, total, color }: { index: number; total: number; color: string }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 16,
+      right: 18,
+      fontSize: 10,
+      fontWeight: 600,
+      color,
+      opacity: 0.4,
+      letterSpacing: '0.06em',
+      zIndex: 10,
+      fontFamily: "'Inter', system-ui, sans-serif",
+    }}>
+      {index + 1}/{total}
+    </div>
+  );
+}
+
+export function SlideCard({ slide, index, total, theme = 'warm' }: Props) {
+  const t = THEMES[theme];
+
+  // Cover and CTA always use bg1; other slides alternate
+  const useBg2 = (slide.type === 'point' || slide.type === 'callout') && index % 2 === 0;
+  const bg = useBg2 ? t.bg2 : t.bg1;
+  const text = useBg2 ? t.text2 : t.text1;
+  const muted = `${text}70`;
+
+  const base: React.CSSProperties = {
+    width: S,
+    height: S,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: bg,
+    flexShrink: 0,
+  };
+
+  const ANTON: React.CSSProperties = {
+    fontFamily: "'Anton', Impact, sans-serif",
+    fontWeight: 400,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '-0.01em',
+    lineHeight: 0.95,
+  };
+
   if (slide.type === 'cover') {
+    const words = slide.title.split(' ');
+    const fontSize = words.length <= 3 ? 76 : words.length <= 5 ? 62 : 50;
     return (
-      <div
-        style={{
-          ...base,
-          background: 'radial-gradient(ellipse 80% 80% at 50% 60%, #1a0835 0%, #08080f 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '0 36px',
-        }}
-      >
-        {/* Glow */}
-        <div
-          style={{
-            position: 'absolute',
-            width: 260,
-            height: 260,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, rgba(233,69,96,0.12) 0%, transparent 70%)`,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-          }}
-        />
-        {/* Top accent line */}
-        <div style={{ width: 44, height: 3, background: RED, borderRadius: 2, marginBottom: 28 }} />
-        <h1
-          style={{
-            fontSize: 36,
-            fontWeight: 900,
-            color: WHITE,
-            lineHeight: 1.1,
-            margin: '0 0 20px',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {slide.title}
-        </h1>
-        <p
-          style={{
-            fontSize: 15,
+      <div style={{ ...base, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 0 48px' }}>
+        <Grain opacity={t.grain} />
+        {/* Top accent rule */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: t.accent, zIndex: 10 }} />
+        <div style={{ padding: '0 26px', position: 'relative', zIndex: 10 }}>
+          {words.map((word, wi) => (
+            <div key={wi} style={{ ...ANTON, fontSize, color: text }}>
+              {word}
+            </div>
+          ))}
+          <div style={{
+            marginTop: 18,
+            fontSize: 12,
             fontWeight: 400,
-            color: GOLD,
-            lineHeight: 1.5,
-            margin: 0,
-          }}
-        >
-          {slide.subtitle}
-        </p>
-        {/* Bottom accent line */}
-        <div style={{ width: 44, height: 3, background: RED, borderRadius: 2, marginTop: 28 }} />
-        <Brand />
+            color: muted,
+            lineHeight: 1.55,
+            fontFamily: "'Inter', system-ui, sans-serif",
+          }}>
+            {slide.subtitle}
+          </div>
+        </div>
+        <Handle color={text} />
       </div>
     );
   }
 
   if (slide.type === 'point') {
+    const headlineSize = slide.headline.length < 18 ? 52 : slide.headline.length < 28 ? 42 : 32;
     return (
-      <div
-        style={{
-          ...base,
-          background: 'linear-gradient(160deg, #0c0f1e 0%, #08080f 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: '36px 36px 52px',
-        }}
-      >
+      <div style={{ ...base, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 0 48px' }}>
+        <Grain opacity={t.grain} />
         {/* Ghost number */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -10,
-            right: 14,
-            fontSize: 130,
-            fontWeight: 900,
-            color: RED,
-            opacity: 0.08,
-            lineHeight: 1,
-            userSelect: 'none',
-            letterSpacing: '-0.05em',
-          }}
-        >
+        <div style={{
+          position: 'absolute',
+          top: -30,
+          left: -6,
+          ...ANTON,
+          fontSize: 240,
+          color: text,
+          opacity: 0.05,
+          lineHeight: 1,
+          userSelect: 'none',
+          zIndex: 1,
+        }}>
           {slide.number}
         </div>
-        <SlideCounter index={index} total={total} />
-        {/* Point label */}
-        <div
-          style={{
+        <Counter index={index} total={total} color={text} />
+        <div style={{ padding: '0 26px', position: 'relative', zIndex: 10 }}>
+          <div style={{
             fontSize: 10,
             fontWeight: 700,
-            color: RED,
+            color: t.accent,
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
             marginBottom: 14,
-          }}
-        >
-          Point {slide.number}
-        </div>
-        {/* Divider */}
-        <div style={{ width: 32, height: 2, background: RED, borderRadius: 1, marginBottom: 20 }} />
-        <h2
-          style={{
-            fontSize: 26,
-            fontWeight: 800,
-            color: WHITE,
-            lineHeight: 1.2,
-            margin: '0 0 18px',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {slide.headline}
-        </h2>
-        <p
-          style={{
-            fontSize: 14,
+            fontFamily: "'Inter', system-ui, sans-serif",
+          }}>
+            {String(slide.number).padStart(2, '0')} —
+          </div>
+          <div style={{ ...ANTON, fontSize: headlineSize, color: text, marginBottom: 16 }}>
+            {slide.headline}
+          </div>
+          <div style={{
+            fontSize: 13,
             fontWeight: 300,
-            color: 'rgba(255,255,255,0.72)',
-            lineHeight: 1.75,
-            margin: 0,
-          }}
-        >
-          {slide.body}
-        </p>
-        <Brand />
+            color: muted,
+            lineHeight: 1.7,
+            fontFamily: "'Inter', system-ui, sans-serif",
+          }}>
+            {slide.body}
+          </div>
+        </div>
+        <Handle color={text} />
       </div>
     );
   }
 
   if (slide.type === 'scripture') {
     return (
-      <div
-        style={{
-          ...base,
-          background: 'radial-gradient(ellipse 90% 70% at 50% 40%, #0d1a2e 0%, #08080f 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '36px 40px 52px',
-        }}
-      >
-        {/* Decorative quote mark */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: 20,
-            fontSize: 100,
-            fontFamily: 'Georgia, serif',
-            color: RED,
-            opacity: 0.12,
-            lineHeight: 1,
-            userSelect: 'none',
-          }}
-        >
-          "
-        </div>
-        <SlideCounter index={index} total={total} />
-        <p
-          style={{
-            fontSize: 17,
+      <div style={{ ...base, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '36px 34px 48px' }}>
+        <Grain opacity={t.grain} />
+        {/* Decorative quote */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 16,
+          fontFamily: 'Georgia, serif',
+          fontSize: 180,
+          color: text,
+          opacity: 0.06,
+          lineHeight: 1,
+          userSelect: 'none',
+          zIndex: 1,
+        }}>"</div>
+        <Counter index={index} total={total} color={text} />
+        <div style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}>
+          <p style={{
             fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: 19,
             fontStyle: 'italic',
             fontWeight: 400,
-            color: WHITE,
-            lineHeight: 1.7,
-            margin: '0 0 24px',
-          }}
-        >
-          "{slide.verse}"
-        </p>
-        <div style={{ width: 36, height: 2, background: RED, borderRadius: 1, marginBottom: 14 }} />
-        <p
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: GOLD,
-            letterSpacing: '0.1em',
+            color: text,
+            lineHeight: 1.75,
+            margin: '0 0 26px',
+          }}>
+            "{slide.verse}"
+          </p>
+          <div style={{ width: 28, height: 2, background: t.accent, margin: '0 auto 16px' }} />
+          <p style={{
+            fontFamily: "'Inter', system-ui, sans-serif",
+            fontSize: 10,
+            fontWeight: 700,
+            color: t.accent,
+            letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            margin: 0,
-          }}
-        >
-          {slide.reference}
-        </p>
-        <Brand />
+          }}>
+            {slide.reference}
+          </p>
+        </div>
+        <Handle color={text} />
       </div>
     );
   }
 
   if (slide.type === 'callout') {
+    const stmtSize = slide.statement.length < 25 ? 50 : slide.statement.length < 40 ? 38 : 28;
     return (
-      <div
-        style={{
-          ...base,
-          background: 'linear-gradient(135deg, #150818 0%, #08080f 60%, #150818 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '36px 40px 52px',
-        }}
-      >
-        {/* Center glow */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: `radial-gradient(ellipse 70% 50% at 50% 50%, rgba(233,69,96,0.08) 0%, transparent 70%)`,
-          }}
-        />
-        <SlideCounter index={index} total={total} />
-        <div style={{ width: 44, height: 3, background: RED, borderRadius: 2, marginBottom: 28 }} />
-        <p
-          style={{
-            fontSize: 24,
-            fontWeight: 800,
-            color: WHITE,
-            lineHeight: 1.35,
-            margin: 0,
-            letterSpacing: '-0.01em',
-          }}
-        >
+      <div style={{ ...base, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px 48px' }}>
+        <Grain opacity={t.grain} />
+        {/* Left accent bar */}
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: t.accent, zIndex: 10 }} />
+        <Counter index={index} total={total} color={text} />
+        <div style={{ ...ANTON, fontSize: stmtSize, color: text, position: 'relative', zIndex: 10 }}>
           {slide.statement}
-        </p>
-        <div style={{ width: 44, height: 3, background: RED, borderRadius: 2, marginTop: 28 }} />
-        <Brand />
+        </div>
+        <Handle color={text} />
       </div>
     );
   }
 
   if (slide.type === 'cta') {
+    const headlineSize = slide.headline.length < 20 ? 52 : slide.headline.length < 32 ? 40 : 30;
     return (
-      <div
-        style={{
-          ...base,
-          background: 'radial-gradient(ellipse 80% 80% at 50% 50%, #1a0820 0%, #08080f 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '36px 36px 52px',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: `radial-gradient(ellipse 60% 60% at 50% 50%, rgba(233,69,96,0.07) 0%, transparent 70%)`,
-          }}
-        />
-        <SlideCounter index={index} total={total} />
-        <h2
-          style={{
-            fontSize: 26,
-            fontWeight: 900,
-            color: WHITE,
-            lineHeight: 1.2,
-            margin: '0 0 28px',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {slide.headline}
-        </h2>
-        {/* CTA pill button (visual only) */}
-        <div
-          style={{
-            background: RED,
-            color: WHITE,
-            fontSize: 14,
-            fontWeight: 700,
-            padding: '12px 28px',
-            borderRadius: 50,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {slide.action}
+      <div style={{ ...base, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px 48px' }}>
+        <Grain opacity={t.grain} />
+        {/* Bottom accent rule */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: t.accent, zIndex: 10 }} />
+        <Counter index={index} total={total} color={text} />
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ ...ANTON, fontSize: headlineSize, color: text, marginBottom: 26 }}>
+            {slide.headline}
+          </div>
+          <div style={{
+            display: 'inline-block',
+            background: t.accent,
+            color: t.bg1,
+            fontSize: 11,
+            fontWeight: 800,
+            fontFamily: "'Inter', system-ui, sans-serif",
+            padding: '10px 22px',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}>
+            {slide.action}
+          </div>
         </div>
-        <Brand />
+        <Handle color={text} />
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import type { Slide, GenerateRequest } from './types';
+import type { Slide, GenerateRequest, Theme } from './types';
 import { IdeaForm } from './components/IdeaForm';
 import { SlidePreview } from './components/SlidePreview';
 
@@ -8,12 +8,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
+  const [theme, setTheme] = useState<Theme>('warm');
 
   const handleGenerate = useCallback(async (req: GenerateRequest) => {
     setLoading(true);
     setError(null);
     setSlides([]);
     setTopic(req.topic);
+    if (req.theme) setTheme(req.theme);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -128,7 +130,7 @@ export default function App() {
 
         {/* Results */}
         {!loading && slides.length > 0 && (
-          <SlidePreview slides={slides} topic={topic} />
+          <SlidePreview slides={slides} topic={topic} theme={theme} />
         )}
 
         {/* Empty state */}
