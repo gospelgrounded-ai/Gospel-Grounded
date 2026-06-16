@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import type { Slide, GenerateRequest, Theme } from './types';
+import type { Slide, Caption, GenerateRequest, Theme } from './types';
 import { IdeaForm } from './components/IdeaForm';
 import { SlidePreview } from './components/SlidePreview';
+import { CaptionPanel } from './components/CaptionPanel';
 
 export default function App() {
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [captions, setCaptions] = useState<Caption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
@@ -14,6 +16,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     setSlides([]);
+    setCaptions([]);
     setTopic(req.topic);
     if (req.theme) setTheme(req.theme);
     try {
@@ -25,6 +28,7 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setSlides(data.slides);
+      setCaptions(data.captions ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -130,7 +134,10 @@ export default function App() {
 
         {/* Results */}
         {!loading && slides.length > 0 && (
-          <SlidePreview slides={slides} topic={topic} theme={theme} />
+          <>
+            <SlidePreview slides={slides} topic={topic} theme={theme} />
+            {captions.length > 0 && <CaptionPanel captions={captions} />}
+          </>
         )}
 
         {/* Empty state */}

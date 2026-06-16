@@ -36,6 +36,12 @@ export interface QuoteSlide {
   authorTitle?: string;  // e.g. "Puritan Pastor" or "20th-century apologist"
 }
 
+export interface Caption {
+  style: string;   // e.g. "Hook", "Story", "List"
+  text: string;
+  hashtags: string;
+}
+
 export type Slide = CoverSlide | PointSlide | ScriptureSlide | QuoteSlide | CalloutSlide | CTASlide;
 
 export type Theme = 'warm' | 'dark' | 'forest' | 'terra';
@@ -48,4 +54,5 @@ export interface GenerateRequest {
 
 export interface GenerateResponse {
   slides: Slide[];
+  captions: Caption[];
 }

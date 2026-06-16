@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { generateSlides } from './generate';
+import { generateCaptions } from './captions';
 
 // In production the key comes from the host's env vars.
 // Locally it falls back to the root .env file.
@@ -20,10 +21,13 @@ app.post('/api/generate', async (req, res) => {
     }
 
     console.log(`\n→ Generating carousel: "${topic}" [${style || 'inspirational'}]`);
-    const slides = await generateSlides(topic.trim(), style);
-    console.log(`✓ Generated ${slides.length} slides`);
+    const [slides, captions] = await Promise.all([
+      generateSlides(topic.trim(), style),
+      generateCaptions(topic.trim(), style),
+    ]);
+    console.log(`✓ Generated ${slides.length} slides + ${captions.length} captions`);
 
-    res.json({ slides });
+    res.json({ slides, captions });
   } catch (err) {
     console.error('Generation error:', err);
     res.status(500).json({
