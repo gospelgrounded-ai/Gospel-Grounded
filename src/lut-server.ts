@@ -268,7 +268,22 @@ function startProgress(jobId,fileName,sbtn){
       sbtn.disabled=false;sbtn.textContent='Convert Video';
     }
   };
-  evtSrc.onerror=()=>{showErr('Lost connection to server');evtSrc.close()};
+  // If SSE drops, fall back to polling so long-running jobs still complete
+  evtSrc.onerror=()=>{
+    evtSrc.close();evtSrc=null;
+    const poll=()=>{
+      fetch('/status/'+jobId).then(r=>r.json()).then(d=>{
+        if(d.status==='running'||d.status==='queued'){setProgress(d.progress||5,'Converting… '+(d.progress||0)+'%');setTimeout(poll,3000)}
+        else if(d.status==='done'){
+          setProgress(100,'Done!');
+          const dl=document.getElementById('dlbtn');
+          dl.href='/download/'+jobId;dl.download=fileName.replace(/\.[^.]+$/,'')+'_rec709.mp4';dl.style.display='block';
+          sbtn.disabled=false;sbtn.textContent='Convert Another';
+        }else{showErr(d.error||'Conversion failed');sbtn.disabled=false;sbtn.textContent='Convert Video'}
+      }).catch(()=>setTimeout(poll,5000));
+    };
+    setTimeout(poll,3000);
+  };
 }
 
 function setProgress(pct,text){
@@ -353,19 +368,25 @@ app.get('/progress/:jobId', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // disable nginx/Railway proxy buffering
   res.flushHeaders();
 
   const send = (payload: object) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+
+  // Keepalive comment every 25 s — prevents Railway's proxy from closing idle SSE connections
+  const keepalive = setInterval(() => res.write(': keepalive\n\n'), 25_000);
 
   const poll = () => {
     const job = jobs.get(req.params.jobId);
     if (!job) {
       send({ error: 'Job not found' });
+      clearInterval(keepalive);
       res.end();
       return;
     }
     send({ status: job.status, progress: job.progress, error: job.error });
     if (job.status === 'done' || job.status === 'error') {
+      clearInterval(keepalive);
       res.end();
     } else {
       setTimeout(poll, 600);
@@ -373,7 +394,7 @@ app.get('/progress/:jobId', (req, res) => {
   };
   poll();
 
-  req.on('close', () => res.end());
+  req.on('close', () => { clearInterval(keepalive); res.end(); });
 });
 
 app.get('/download/:jobId', (req, res) => {
