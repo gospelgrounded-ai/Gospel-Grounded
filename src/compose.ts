@@ -15,7 +15,7 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
 // passthrough() keeps any extra fields (e.g. when Claude puts data fields flat instead of nested)
 const GraphicCueSchema = z.object({
-  type: z.enum(["text_overlay", "lower_third", "bullet_list", "comparison_chart", "title_card"]),
+  type: z.enum(["text_overlay", "lower_third", "bullet_list", "comparison_chart", "title_card", "chapter_card"]),
   startTime: z.number(),
   endTime: z.number(),
   data: z.record(z.unknown()).optional(),
@@ -60,26 +60,32 @@ The "data" field is a nested object — never put data fields at the top level o
 
 Example of CORRECT format:
 { "type": "title_card", "startTime": 0, "endTime": 5, "data": { "title": "Faith vs Works", "subtitle": "A Biblical Study" } }
+{ "type": "chapter_card", "startTime": 62, "endTime": 67, "data": { "label": "PART ONE", "title": "THE PROBLEM" } }
 { "type": "text_overlay", "startTime": 45, "endTime": 50, "data": { "text": "Faith without works is dead", "emphasis": true } }
 { "type": "lower_third", "startTime": 90, "endTime": 95, "data": { "title": "James 2:17", "subtitle": "New Testament" } }
 { "type": "bullet_list", "startTime": 120, "endTime": 126, "data": { "heading": "Key Points", "items": ["Point one", "Point two", "Point three"] } }
 
 Data shape per type:
-- title_card: { title: string, subtitle?: string }
-- text_overlay: { text: string, emphasis?: boolean }
-- lower_third: { title: string, subtitle?: string }
-- bullet_list: { heading?: string, items: string[] }
+- title_card:      { title: string, subtitle?: string }
+- chapter_card:    { label?: string, title: string }
+- text_overlay:    { text: string, emphasis?: boolean }
+- lower_third:     { title: string, subtitle?: string }
+- bullet_list:     { heading?: string, items: string[] }
 - comparison_chart: { leftLabel: string, rightLabel: string, rows: [{label, left, right}] }
 
-Rules:
-- Space graphics at least 3 seconds apart
-- Each graphic displays for 3–6 seconds
-- Always add a title_card at startTime: 0
-- Use text_overlay for key quotes (max 8 words)
-- Use bullet_list when listing 3+ items
-- Use comparison_chart when comparing two things
-- Use lower_third when introducing a tool, person, or concept
-- Align timing exactly with when that content is spoken
+When to use each type — choose whichever fits the moment best:
+- title_card:      ALWAYS at startTime: 0 for the video title. Never use again.
+- chapter_card:    Full-screen cinematic interstitial for major section transitions. Use when the speaker clearly shifts to a new topic, numbered point, or named section (e.g. "Now let's look at...", "The second thing is...", "Part two:"). Display 4–5 seconds. Max 1 per 4 minutes. Label = section marker (e.g. "PART TWO", "THE SOLUTION"); title = the section name in 1–4 ALL CAPS words.
+- text_overlay:    Short key quote or statistic (max 8 words), high-impact spoken line
+- lower_third:     Introduce a scripture reference, person, tool, or named concept
+- bullet_list:     3+ items being listed or enumerated by the speaker
+- comparison_chart: Side-by-side contrast of two things
+
+General rules:
+- Space non-chapter graphics at least 3 seconds apart
+- Each non-chapter graphic displays for 3–6 seconds
+- chapter_cards may overlap or be close to other graphics — they dominate the screen
+- Align all timing exactly with when that content is spoken
 
 == COLOR GRADING ==
 Choose ONE preset for the entire video and return its CSS filter values:

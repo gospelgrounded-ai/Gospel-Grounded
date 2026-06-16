@@ -22,7 +22,8 @@ export type GraphicType =
   | "lower_third"
   | "bullet_list"
   | "comparison_chart"
-  | "title_card";
+  | "title_card"
+  | "chapter_card";
 
 export interface GraphicCue {
   type: GraphicType;
@@ -55,6 +56,11 @@ export interface ComparisonChartData {
 export interface TitleCardData {
   title: string;
   subtitle?: string;
+}
+
+export interface ChapterCardData {
+  label?: string;  // e.g. "PART ONE", "THE PROBLEM" — small text above
+  title: string;   // e.g. "THE DESTRUCTION" — large bold text
 }
 
 export type ColorGradePreset =

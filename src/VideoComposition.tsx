@@ -13,6 +13,7 @@ import { LowerThird } from "./animations/LowerThird";
 import { BulletList } from "./animations/BulletList";
 import { ComparisonChart } from "./animations/ComparisonChart";
 import { TitleCard } from "./animations/TitleCard";
+import { ChapterCard } from "./animations/ChapterCard";
 import { computeRetainedSegments, remapTime } from "./editUtils";
 import { getStyle } from "./styles";
 
@@ -61,6 +62,12 @@ function GraphicSequence({
       {cue.type === "title_card" && (
         <TitleCard
           data={cue.data as import("./types").TitleCardData}
+          graphicStyle={graphicStyle}
+        />
+      )}
+      {cue.type === "chapter_card" && (
+        <ChapterCard
+          data={cue.data as import("./types").ChapterCardData}
           graphicStyle={graphicStyle}
         />
       )}
