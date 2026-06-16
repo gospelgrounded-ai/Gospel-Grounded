@@ -183,7 +183,7 @@ function wire(dropId,inputId,nameId){
 wire('vdrop','vfile','vname');
 wire('ldrop','lfile','lname');
 
-document.getElementById('form').addEventListener('submit',async e=>{
+document.getElementById('form').addEventListener('submit',function(e){
   e.preventDefault();
   const vf=document.getElementById('vfile').files[0];
   if(!vf){alert('Select a video file first.');return}
@@ -198,24 +198,53 @@ document.getElementById('form').addEventListener('submit',async e=>{
   fd.append('quality',quality);
 
   const sbtn=document.getElementById('sbtn');
-  sbtn.disabled=true; sbtn.textContent='Converting…';
+  sbtn.disabled=true; sbtn.textContent='Uploading…';
   const st=document.getElementById('status');
   st.style.display='block';
   document.getElementById('dlbtn').style.display='none';
   document.getElementById('errmsg').style.display='none';
-  setProgress(3,'Uploading…');
+  setProgress(0,'Preparing upload…');
 
-  let jobId;
-  try{
-    const r=await fetch('/convert',{method:'POST',body:fd});
-    const data=await r.json();
-    if(!r.ok)throw new Error(data.error||r.statusText);
-    jobId=data.jobId;
-  }catch(err){
-    showErr('Upload failed: '+err.message);
+  // Use XHR instead of fetch — iOS Safari handles large file uploads reliably with XHR
+  const xhr=new XMLHttpRequest();
+  xhr.open('POST','/convert');
+
+  xhr.upload.onprogress=function(ev){
+    if(ev.lengthComputable){
+      const pct=Math.round((ev.loaded/ev.total)*100);
+      setProgress(pct,'Uploading… '+pct+'%');
+    }
+  };
+
+  xhr.onload=function(){
+    if(xhr.status>=200&&xhr.status<300){
+      let data;
+      try{data=JSON.parse(xhr.responseText)}catch(err){showErr('Bad response from server');sbtn.disabled=false;sbtn.textContent='Convert Video';return}
+      startProgress(data.jobId,vf.name,sbtn);
+    }else{
+      let msg=xhr.statusText;
+      try{msg=JSON.parse(xhr.responseText).error||msg}catch(e){}
+      showErr('Upload failed ('+xhr.status+'): '+msg);
+      sbtn.disabled=false;sbtn.textContent='Convert Video';
+    }
+  };
+
+  xhr.onerror=function(){
+    showErr('Network error during upload. Check your connection and try again.');
     sbtn.disabled=false;sbtn.textContent='Convert Video';
-    return;
-  }
+  };
+
+  xhr.ontimeout=function(){
+    showErr('Upload timed out. Try a smaller file or faster connection.');
+    sbtn.disabled=false;sbtn.textContent='Convert Video';
+  };
+
+  xhr.timeout=0; // no timeout — large files need time
+  xhr.send(fd);
+});
+
+function startProgress(jobId,fileName,sbtn){
+  sbtn.textContent='Converting…';
 
   setProgress(5,'Starting FFmpeg…');
   evtSrc=new EventSource('/progress/'+jobId);
@@ -230,7 +259,7 @@ document.getElementById('form').addEventListener('submit',async e=>{
       evtSrc.close();
       const dl=document.getElementById('dlbtn');
       dl.href='/download/'+jobId;
-      dl.download=vf.name.replace(/\\.[^.]+$/,'')+'_rec709.mp4';
+      dl.download=fileName.replace(/\.[^.]+$/,'')+'_rec709.mp4';
       dl.style.display='block';
       sbtn.disabled=false;sbtn.textContent='Convert Another';
     }else if(d.status==='error'){
@@ -240,7 +269,7 @@ document.getElementById('form').addEventListener('submit',async e=>{
     }
   };
   evtSrc.onerror=()=>{showErr('Lost connection to server');evtSrc.close()};
-});
+}
 
 function setProgress(pct,text){
   document.getElementById('pfill').style.width=pct+'%';
