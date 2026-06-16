@@ -10,8 +10,9 @@ const PORT = parseInt(process.env.PORT || process.env.LUT_SERVER_PORT || '4000',
 const UPLOAD_DIR = path.resolve('./uploads');
 const OUTPUT_DIR = path.resolve('./out');
 const LUTS_DIR = path.resolve('./luts');
+const PARTIAL_DIR = path.join(UPLOAD_DIR, 'partial');
 
-for (const dir of [UPLOAD_DIR, OUTPUT_DIR, LUTS_DIR]) {
+for (const dir of [UPLOAD_DIR, OUTPUT_DIR, LUTS_DIR, PARTIAL_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
@@ -26,19 +27,6 @@ interface Job {
 }
 const jobs = new Map<string, Job>();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, file.fieldname === 'lut' ? LUTS_DIR : UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ts = Date.now();
-    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${ts}-${safe}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 * 1024 } });
-
-const app = express();
-app.use(express.json());
-
 // Clean up jobs + files older than 2 hours
 setInterval(() => {
   const cutoff = Date.now() - 2 * 60 * 60 * 1000;
@@ -50,6 +38,27 @@ setInterval(() => {
     }
   }
 }, 30 * 60 * 1000);
+
+// Multer for LUT files (small, goes straight to luts/)
+const lutUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, LUTS_DIR),
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`),
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
+
+// Multer for 8 MB chunks (goes to UPLOAD_DIR with temp name, we rename after)
+const chunkUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+    filename: (_req, _file, cb) => cb(null, `tmp-chunk-${Date.now()}-${Math.random().toString(36).slice(2)}`),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB safety margin over 8 MB chunk
+});
+
+const app = express();
+app.use(express.json());
 
 // ─── HTML UI ─────────────────────────────────────────────────────────────────
 
@@ -111,7 +120,7 @@ input[type=file]{display:none}
       <span class="ico">🎬</span>
       <p>Drag &amp; drop your Apple Log video here<br>or <strong>click to browse</strong></p>
       <p class="fname" id="vname"></p>
-      <input type="file" id="vfile" name="video" accept="video/*,.mp4,.mov,.mxf">
+      <input type="file" id="vfile" accept="video/*,.mp4,.mov,.mxf">
     </div>
 
     <label>LUT Source</label>
@@ -125,18 +134,16 @@ input[type=file]{display:none}
       <div class="drop" id="ldrop" style="padding:22px;margin-bottom:20px">
         <p>.cube or .3dl LUT file</p>
         <p class="fname" id="lname"></p>
-        <input type="file" id="lfile" name="lut" accept=".cube,.3dl">
+        <input type="file" id="lfile" accept=".cube,.3dl">
       </div>
     </div>
-    <input type="hidden" id="lutMode" name="lutMode" value="builtin">
 
     <label>Output Quality</label>
     <div class="row">
-      <div class="qopt" id="q-high" onclick="setQ('high')">High<small>CRF 18 &middot; slow</small></div>
-      <div class="qopt on" id="q-balanced" onclick="setQ('balanced')">Balanced<small>CRF 23 &middot; medium</small></div>
-      <div class="qopt" id="q-fast" onclick="setQ('fast')">Fast<small>CRF 28 &middot; fast</small></div>
+      <div class="qopt" id="q-high" onclick="setQ('high')">High<small>CRF 18</small></div>
+      <div class="qopt on" id="q-balanced" onclick="setQ('balanced')">Balanced<small>CRF 23</small></div>
+      <div class="qopt" id="q-fast" onclick="setQ('fast')">Fast<small>CRF 28</small></div>
     </div>
-    <input type="hidden" id="quality" name="quality" value="balanced">
 
     <button type="submit" class="btn" id="sbtn">Convert Video</button>
   </form>
@@ -153,11 +160,11 @@ input[type=file]{display:none}
 </div>
 
 <script>
+const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB — stays under Railway's ingress limit
 let lutMode='builtin', quality='balanced', evtSrc=null;
 
 function setLut(m){
   lutMode=m;
-  document.getElementById('lutMode').value=m;
   ['builtin','upload','ffmpeg'].forEach(v=>document.getElementById('o-'+v).classList.toggle('on',v===m));
   document.getElementById('lut-area').classList.toggle('show',m==='upload');
   const h=document.getElementById('hint');
@@ -168,7 +175,6 @@ function setLut(m){
 
 function setQ(q){
   quality=q;
-  document.getElementById('quality').value=q;
   ['high','balanced','fast'].forEach(v=>document.getElementById('q-'+v).classList.toggle('on',v===q));
 }
 
@@ -183,83 +189,94 @@ function wire(dropId,inputId,nameId){
 wire('vdrop','vfile','vname');
 wire('ldrop','lfile','lname');
 
-document.getElementById('form').addEventListener('submit',function(e){
+document.getElementById('form').addEventListener('submit',async function(e){
   e.preventDefault();
   const vf=document.getElementById('vfile').files[0];
   if(!vf){alert('Select a video file first.');return}
-  if(lutMode==='upload'&&!document.getElementById('lfile').files[0]){alert('Select a .cube LUT file.');return}
+  const lutFile=document.getElementById('lfile').files[0];
+  if(lutMode==='upload'&&!lutFile){alert('Select a .cube LUT file.');return}
 
   if(evtSrc){evtSrc.close();evtSrc=null}
-
-  const fd=new FormData();
-  fd.append('video',vf);
-  if(lutMode==='upload')fd.append('lut',document.getElementById('lfile').files[0]);
-  fd.append('lutMode',lutMode);
-  fd.append('quality',quality);
-
   const sbtn=document.getElementById('sbtn');
-  sbtn.disabled=true; sbtn.textContent='Uploading…';
-  const st=document.getElementById('status');
-  st.style.display='block';
+  sbtn.disabled=true;
+  document.getElementById('status').style.display='block';
   document.getElementById('dlbtn').style.display='none';
   document.getElementById('errmsg').style.display='none';
-  setProgress(0,'Preparing upload…');
 
-  // Use XHR instead of fetch — iOS Safari handles large file uploads reliably with XHR
-  const xhr=new XMLHttpRequest();
-  xhr.open('POST','/convert');
-
-  xhr.upload.onprogress=function(ev){
-    if(ev.lengthComputable){
-      const pct=Math.round((ev.loaded/ev.total)*100);
-      setProgress(pct,'Uploading… '+pct+'%');
+  try{
+    // Step 1: upload LUT if needed (small file, one shot)
+    let lutToken=null;
+    if(lutMode==='upload'){
+      sbtn.textContent='Uploading LUT…';
+      setProgress(1,'Uploading LUT file…');
+      const fd=new FormData();
+      fd.append('lut',lutFile);
+      const r=await fetch('/upload-lut',{method:'POST',body:fd});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error||r.statusText);
+      lutToken=d.lutToken;
     }
-  };
 
-  xhr.onload=function(){
-    if(xhr.status>=200&&xhr.status<300){
-      let data;
-      try{data=JSON.parse(xhr.responseText)}catch(err){showErr('Bad response from server');sbtn.disabled=false;sbtn.textContent='Convert Video';return}
-      startProgress(data.jobId,vf.name,sbtn);
-    }else{
-      let msg=xhr.statusText;
-      try{msg=JSON.parse(xhr.responseText).error||msg}catch(e){}
-      showErr('Upload failed ('+xhr.status+'): '+msg);
-      sbtn.disabled=false;sbtn.textContent='Convert Video';
+    // Step 2: upload video in 8 MB chunks
+    const totalChunks=Math.ceil(vf.size/CHUNK_SIZE);
+    const uploadId=Date.now()+'-'+Math.random().toString(36).slice(2,8);
+
+    for(let i=0;i<totalChunks;i++){
+      const pct=Math.round((i/totalChunks)*80);
+      sbtn.textContent='Uploading…';
+      setProgress(pct,'Uploading… chunk '+(i+1)+'/'+totalChunks);
+      const chunk=vf.slice(i*CHUNK_SIZE,Math.min((i+1)*CHUNK_SIZE,vf.size));
+      const fd=new FormData();
+      fd.append('chunk',chunk,vf.name);
+      fd.append('uploadId',uploadId);
+      fd.append('chunkIndex',String(i));
+      fd.append('totalChunks',String(totalChunks));
+      fd.append('originalName',vf.name);
+
+      await new Promise(function(resolve,reject){
+        const xhr=new XMLHttpRequest();
+        xhr.open('POST','/chunk');
+        xhr.onload=()=>xhr.status<300?resolve(null):reject(new Error('Chunk '+i+' failed ('+xhr.status+'): '+xhr.responseText));
+        xhr.onerror=()=>reject(new Error('Network error on chunk '+(i+1)));
+        xhr.send(fd);
+      });
     }
-  };
 
-  xhr.onerror=function(){
-    showErr('Network error during upload. Check your connection and try again.');
+    // Step 3: trigger conversion
+    setProgress(82,'Assembling file…');
+    sbtn.textContent='Processing…';
+    const cr=await fetch('/start-convert',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uploadId,originalName:vf.name,lutMode,quality,lutToken})
+    });
+    const cd=await cr.json();
+    if(!cr.ok)throw new Error(cd.error||cr.statusText);
+
+    startProgress(cd.jobId,vf.name,sbtn);
+  }catch(err){
+    showErr(String(err.message||err));
     sbtn.disabled=false;sbtn.textContent='Convert Video';
-  };
-
-  xhr.ontimeout=function(){
-    showErr('Upload timed out. Try a smaller file or faster connection.');
-    sbtn.disabled=false;sbtn.textContent='Convert Video';
-  };
-
-  xhr.timeout=0; // no timeout — large files need time
-  xhr.send(fd);
+  }
 });
 
 function startProgress(jobId,fileName,sbtn){
   sbtn.textContent='Converting…';
-
-  setProgress(5,'Starting FFmpeg…');
+  setProgress(85,'Starting FFmpeg…');
   evtSrc=new EventSource('/progress/'+jobId);
   evtSrc.onmessage=ev=>{
     const d=JSON.parse(ev.data);
     if(d.error){showErr(d.error);evtSrc.close();sbtn.disabled=false;sbtn.textContent='Convert Video';return}
     if(d.status==='running'||d.status==='queued'){
-      const pct=d.progress||5;
-      setProgress(pct,'Converting… '+pct+'%');
+      // Map FFmpeg 0-100 progress to UI 85-99 range
+      const pct=85+Math.round((d.progress||0)*0.14);
+      setProgress(pct,'Converting… '+(d.progress||0)+'%');
     }else if(d.status==='done'){
       setProgress(100,'Done!');
       evtSrc.close();
       const dl=document.getElementById('dlbtn');
       dl.href='/download/'+jobId;
-      dl.download=fileName.replace(/\.[^.]+$/,'')+'_rec709.mp4';
+      dl.download=fileName.replace(/\\.[^.]+$/,'')+'_rec709.mp4';
       dl.style.display='block';
       sbtn.disabled=false;sbtn.textContent='Convert Another';
     }else if(d.status==='error'){
@@ -268,18 +285,25 @@ function startProgress(jobId,fileName,sbtn){
       sbtn.disabled=false;sbtn.textContent='Convert Video';
     }
   };
-  // If SSE drops, fall back to polling so long-running jobs still complete
   evtSrc.onerror=()=>{
     evtSrc.close();evtSrc=null;
     const poll=()=>{
       fetch('/status/'+jobId).then(r=>r.json()).then(d=>{
-        if(d.status==='running'||d.status==='queued'){setProgress(d.progress||5,'Converting… '+(d.progress||0)+'%');setTimeout(poll,3000)}
-        else if(d.status==='done'){
+        if(d.status==='running'||d.status==='queued'){
+          const pct=85+Math.round((d.progress||0)*0.14);
+          setProgress(pct,'Converting… '+(d.progress||0)+'%');
+          setTimeout(poll,3000);
+        }else if(d.status==='done'){
           setProgress(100,'Done!');
           const dl=document.getElementById('dlbtn');
-          dl.href='/download/'+jobId;dl.download=fileName.replace(/\.[^.]+$/,'')+'_rec709.mp4';dl.style.display='block';
+          dl.href='/download/'+jobId;
+          dl.download=fileName.replace(/\\.[^.]+$/,'')+'_rec709.mp4';
+          dl.style.display='block';
           sbtn.disabled=false;sbtn.textContent='Convert Another';
-        }else{showErr(d.error||'Conversion failed');sbtn.disabled=false;sbtn.textContent='Convert Video'}
+        }else{
+          showErr(d.error||'Conversion failed');
+          sbtn.disabled=false;sbtn.textContent='Convert Video';
+        }
       }).catch(()=>setTimeout(poll,5000));
     };
     setTimeout(poll,3000);
@@ -304,90 +328,131 @@ function showErr(msg){
 
 app.get('/', (_req, res) => res.send(HTML));
 
-app.post(
-  '/convert',
-  upload.fields([{ name: 'video', maxCount: 1 }, { name: 'lut', maxCount: 1 }]),
-  (req, res) => {
-    const files = req.files as Record<string, Express.Multer.File[]>;
-    const videoFile = files['video']?.[0];
-    const lutFile = files['lut']?.[0];
+// Upload a small LUT file ahead of conversion
+app.post('/upload-lut', lutUpload.single('lut'), (req, res) => {
+  if (!req.file) { res.status(400).json({ error: 'No LUT file' }); return; }
+  res.json({ lutToken: path.basename(req.file.path) });
+});
 
-    if (!videoFile) {
-      res.status(400).json({ error: 'No video file uploaded' });
+// Receive one 8 MB chunk
+app.post('/chunk', chunkUpload.single('chunk'), (req, res) => {
+  if (!req.file) { res.status(400).json({ error: 'No chunk data' }); return; }
+
+  const { uploadId, chunkIndex, totalChunks, originalName } = req.body as Record<string, string>;
+  if (!uploadId || chunkIndex === undefined || !totalChunks) {
+    fs.unlink(req.file.path, () => {});
+    res.status(400).json({ error: 'Missing chunk metadata' });
+    return;
+  }
+
+  const partialDir = path.join(PARTIAL_DIR, uploadId);
+  fs.mkdirSync(partialDir, { recursive: true });
+
+  const idx = String(parseInt(chunkIndex)).padStart(6, '0');
+  const dest = path.join(partialDir, `chunk-${idx}`);
+  fs.renameSync(req.file.path, dest);
+
+  const received = fs.readdirSync(partialDir).filter(f => f.startsWith('chunk-')).length;
+  res.json({ ok: true, received, total: parseInt(totalChunks) });
+});
+
+// Assemble chunks and kick off FFmpeg
+app.post('/start-convert', async (req, res) => {
+  const { uploadId, originalName, lutMode, quality, lutToken } = req.body as Record<string, string>;
+  if (!uploadId || !originalName) {
+    res.status(400).json({ error: 'Missing uploadId or originalName' });
+    return;
+  }
+
+  const partialDir = path.join(PARTIAL_DIR, uploadId);
+  if (!fs.existsSync(partialDir)) {
+    res.status(400).json({ error: 'No chunks found for this uploadId' });
+    return;
+  }
+
+  const chunks = fs.readdirSync(partialDir).filter(f => f.startsWith('chunk-')).sort();
+  if (chunks.length === 0) {
+    res.status(400).json({ error: 'No chunks found' });
+    return;
+  }
+
+  const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const assembledPath = path.join(UPLOAD_DIR, `${uploadId}-${safeName}`);
+
+  try {
+    await assembleChunks(partialDir, chunks, assembledPath);
+  } catch (err: any) {
+    res.status(500).json({ error: `Assembly failed: ${err.message}` });
+    return;
+  }
+
+  // Resolve LUT path
+  let lutPath: string | null = null;
+  if (lutMode === 'builtin') {
+    const cubes = fs.readdirSync(LUTS_DIR).filter(f => /\.(cube|3dl)$/i.test(f));
+    if (cubes.length === 0) {
+      fs.unlink(assembledPath, () => {});
+      res.status(400).json({
+        error: 'No LUT found in luts/ directory. Use "Upload .cube" or "FFmpeg Native" mode.',
+      });
       return;
     }
-
-    const lutMode = (req.body.lutMode as string) || 'builtin';
-    const quality = (req.body.quality as string) || 'balanced';
-
-    let lutPath: string | null = null;
-
-    if (lutMode === 'builtin') {
-      const cubes = fs.readdirSync(LUTS_DIR).filter(f => /\.(cube|3dl)$/i.test(f));
-      if (cubes.length === 0) {
-        fs.unlink(videoFile.path, () => {});
-        res.status(400).json({
-          error:
-            'No LUT found in the luts/ directory. Place your Apple Log→Rec.709 .cube file there, ' +
-            'or choose "Upload .cube" / "FFmpeg Native" mode.',
-        });
-        return;
-      }
-      lutPath = path.join(LUTS_DIR, cubes[0]);
-    } else if (lutMode === 'upload') {
-      if (!lutFile) {
-        fs.unlink(videoFile.path, () => {});
-        res.status(400).json({ error: 'No LUT file uploaded' });
-        return;
-      }
-      lutPath = lutFile.path;
+    lutPath = path.join(LUTS_DIR, cubes[0]);
+  } else if (lutMode === 'upload') {
+    if (!lutToken) {
+      fs.unlink(assembledPath, () => {});
+      res.status(400).json({ error: 'No LUT token — upload the LUT file first' });
+      return;
     }
+    lutPath = path.join(LUTS_DIR, lutToken);
+    if (!fs.existsSync(lutPath)) {
+      fs.unlink(assembledPath, () => {});
+      res.status(400).json({ error: 'LUT file not found on server' });
+      return;
+    }
+  }
 
-    const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const baseName = path.basename(videoFile.originalname, path.extname(videoFile.originalname));
-    const outputName = `${baseName}_rec709.mp4`;
-    const outputPath = path.join(OUTPUT_DIR, `${jobId}-${outputName}`);
+  const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const baseName = path.basename(originalName, path.extname(originalName));
+  const outputName = `${baseName}_rec709.mp4`;
+  const outputPath = path.join(OUTPUT_DIR, `${jobId}-${outputName}`);
 
-    const job: Job = {
-      status: 'queued',
-      progress: 0,
-      outputPath,
-      outputName,
-      inputPath: videoFile.path,
-      createdAt: Date.now(),
-    };
-    jobs.set(jobId, job);
+  const job: Job = {
+    status: 'queued',
+    progress: 0,
+    outputPath,
+    outputName,
+    inputPath: assembledPath,
+    createdAt: Date.now(),
+  };
+  jobs.set(jobId, job);
 
-    runConversion(jobId, videoFile.path, outputPath, lutPath, lutMode === 'ffmpeg', quality);
+  runConversion(jobId, assembledPath, outputPath, lutPath, lutMode === 'ffmpeg', quality || 'balanced');
+  res.json({ jobId });
+});
 
-    res.json({ jobId });
-  },
-);
+app.get('/status/:jobId', (req, res) => {
+  const job = jobs.get(req.params.jobId);
+  if (!job) { res.status(404).json({ error: 'Job not found' }); return; }
+  res.json({ status: job.status, progress: job.progress, error: job.error });
+});
 
 app.get('/progress/:jobId', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); // disable nginx/Railway proxy buffering
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
   const send = (payload: object) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
-
-  // Keepalive comment every 25 s — prevents Railway's proxy from closing idle SSE connections
   const keepalive = setInterval(() => res.write(': keepalive\n\n'), 25_000);
 
   const poll = () => {
     const job = jobs.get(req.params.jobId);
-    if (!job) {
-      send({ error: 'Job not found' });
-      clearInterval(keepalive);
-      res.end();
-      return;
-    }
+    if (!job) { send({ error: 'Job not found' }); clearInterval(keepalive); res.end(); return; }
     send({ status: job.status, progress: job.progress, error: job.error });
     if (job.status === 'done' || job.status === 'error') {
-      clearInterval(keepalive);
-      res.end();
+      clearInterval(keepalive); res.end();
     } else {
       setTimeout(poll, 600);
     }
@@ -413,6 +478,24 @@ app.get('/download/:jobId', (req, res) => {
   });
 });
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function assembleChunks(partialDir: string, chunks: string[], outputPath: string) {
+  const writeStream = fs.createWriteStream(outputPath);
+  for (const chunkFile of chunks) {
+    const chunkPath = path.join(partialDir, chunkFile);
+    await new Promise<void>((resolve, reject) => {
+      const rs = fs.createReadStream(chunkPath);
+      rs.on('end', resolve);
+      rs.on('error', reject);
+      rs.pipe(writeStream, { end: false });
+    });
+    fs.unlinkSync(chunkPath);
+  }
+  await new Promise<void>((resolve, reject) => writeStream.end((err: Error | null) => err ? reject(err) : resolve()));
+  try { fs.rmdirSync(partialDir); } catch {}
+}
+
 // ─── FFmpeg conversion ───────────────────────────────────────────────────────
 
 function runConversion(
@@ -427,7 +510,6 @@ function runConversion(
   job.status = 'running';
 
   const crfMap: Record<string, string> = { high: '18', balanced: '23', fast: '28' };
-  // Cap at medium — "slow" is killed by Railway's OOM/CPU limits on large files
   const presetMap: Record<string, string> = { high: 'medium', balanced: 'medium', fast: 'fast' };
   const crf = crfMap[quality] ?? '23';
   const preset = presetMap[quality] ?? 'medium';
@@ -436,7 +518,6 @@ function runConversion(
   if (useNative) {
     vf = 'colorspace=all=bt709:iall=bt2020:fast=1,format=yuv420p';
   } else {
-    // Escape colons in path for FFmpeg filter graph (Linux)
     const escaped = (lutPath || '').replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
     vf = `lut3d=file='${escaped}',format=yuv420p`;
   }
@@ -448,7 +529,7 @@ function runConversion(
     '-c:v', 'libx264',
     '-crf', crf,
     '-preset', preset,
-    '-threads', '2',        // cap CPU threads to stay within Railway's resource limits
+    '-threads', '2',
     '-c:a', 'copy',
     '-movflags', '+faststart',
     '-progress', 'pipe:2',
@@ -457,7 +538,7 @@ function runConversion(
     outputPath,
   ];
 
-  console.log(`[${jobId}] Starting FFmpeg: ffmpeg ${args.join(' ')}`);
+  console.log(`[${jobId}] FFmpeg starting (${quality}, ${useNative ? 'native' : 'lut'})`);
   const proc = spawn('ffmpeg', args);
 
   let totalUs = 0;
@@ -466,22 +547,12 @@ function runConversion(
   proc.stderr.on('data', (chunk: Buffer) => {
     const text = chunk.toString();
     stderr += text;
-
-    // Grab total duration once
     if (totalUs === 0) {
       const m = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
-      if (m) {
-        totalUs =
-          (parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseFloat(m[3])) * 1_000_000;
-      }
+      if (m) totalUs = (parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseFloat(m[3])) * 1_000_000;
     }
-
-    // Parse -progress pipe output: "out_time_us=<microseconds>"
-    const timeMatch = text.match(/out_time_us=(\d+)/);
-    if (timeMatch && totalUs > 0) {
-      const current = parseInt(timeMatch[1]);
-      job.progress = Math.min(99, Math.round((current / totalUs) * 100));
-    }
+    const tm = text.match(/out_time_us=(\d+)/);
+    if (tm && totalUs > 0) job.progress = Math.min(99, Math.round((parseInt(tm[1]) / totalUs) * 100));
   });
 
   proc.on('close', (code, signal) => {
@@ -491,9 +562,9 @@ function runConversion(
       console.log(`[${jobId}] Done → ${outputPath}`);
     } else {
       job.status = 'error';
-      const reason = signal ? `killed by signal ${signal} (likely OOM)` : `exited with code ${code}`;
-      job.error = `FFmpeg ${reason}. Try "Fast" quality or a shorter clip.`;
-      console.error(`[${jobId}] FFmpeg failed: ${reason}`);
+      const reason = signal ? `killed by signal ${signal} (OOM — try Fast quality)` : `exited with code ${code}`;
+      job.error = `FFmpeg ${reason}.`;
+      console.error(`[${jobId}] Failed: ${reason}`);
       fs.unlink(outputPath, () => {});
     }
     fs.unlink(inputPath, () => {});
@@ -501,8 +572,7 @@ function runConversion(
 
   proc.on('error', err => {
     job.status = 'error';
-    job.error = `Failed to launch FFmpeg: ${err.message}. Is ffmpeg installed and on PATH?`;
-    console.error(`[${jobId}] spawn error:`, err.message);
+    job.error = `Could not launch FFmpeg: ${err.message}`;
     fs.unlink(inputPath, () => {});
   });
 }
@@ -510,7 +580,6 @@ function runConversion(
 // ─── Start ───────────────────────────────────────────────────────────────────
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n✅  LUT Converter running on http://0.0.0.0:${PORT}`);
-  console.log(`    Tailscale: http://<your-tailscale-ip>:${PORT}`);
+  console.log(`\n✅  LUT Converter on http://0.0.0.0:${PORT}`);
   console.log(`    LUT folder: ${LUTS_DIR}\n`);
 });
