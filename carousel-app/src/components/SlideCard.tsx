@@ -267,6 +267,71 @@ export function SlideCard({ slide, index, total, theme = 'warm' }: Props) {
     );
   }
 
+  if (slide.type === 'quote') {
+    const quoteSize = slide.quote.length < 80 ? 20 : slide.quote.length < 140 ? 17 : 14;
+    return (
+      <div style={{ ...base, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 30px 48px' }}>
+        <Grain opacity={t.grain} />
+        {/* Large decorative open-quote */}
+        <div style={{
+          position: 'absolute',
+          top: -10,
+          left: 18,
+          fontFamily: 'Georgia, serif',
+          fontSize: 200,
+          color: t.accent,
+          opacity: 0.13,
+          lineHeight: 1,
+          userSelect: 'none',
+          zIndex: 1,
+        }}>"</div>
+        <Counter index={index} total={total} color={text} />
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <p style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: quoteSize,
+            fontStyle: 'italic',
+            fontWeight: 400,
+            color: text,
+            lineHeight: 1.7,
+            margin: '0 0 24px',
+          }}>
+            "{slide.quote}"
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 24, height: 2, background: t.accent, flexShrink: 0 }} />
+            <div>
+              <div style={{
+                fontFamily: "'Anton', Impact, sans-serif",
+                fontSize: 13,
+                fontWeight: 400,
+                color: text,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                lineHeight: 1.2,
+              }}>
+                {slide.author}
+              </div>
+              {slide.authorTitle && (
+                <div style={{
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  fontSize: 10,
+                  fontWeight: 400,
+                  color: muted,
+                  marginTop: 2,
+                  letterSpacing: '0.04em',
+                }}>
+                  {slide.authorTitle}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <Handle color={text} />
+      </div>
+    );
+  }
+
   if (slide.type === 'callout') {
     const stmtSize = slide.statement.length < 25 ? 50 : slide.statement.length < 40 ? 38 : 28;
     return (

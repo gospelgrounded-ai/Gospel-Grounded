@@ -29,7 +29,14 @@ export interface CTASlide {
   action: string;
 }
 
-export type Slide = CoverSlide | PointSlide | ScriptureSlide | CalloutSlide | CTASlide;
+export interface QuoteSlide {
+  type: 'quote';
+  quote: string;
+  author: string;
+  authorTitle?: string;  // e.g. "Puritan Pastor" or "20th-century apologist"
+}
+
+export type Slide = CoverSlide | PointSlide | ScriptureSlide | QuoteSlide | CalloutSlide | CTASlide;
 
 export type Theme = 'warm' | 'dark' | 'forest' | 'terra';
 
