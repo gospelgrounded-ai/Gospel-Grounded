@@ -1,5 +1,6 @@
 [build]
 builder = "nixpacks"
+buildCommand = "npm install"
 
 [deploy]
 startCommand = "npx ts-node src/lut-server.ts"
