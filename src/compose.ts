@@ -94,10 +94,10 @@ Choose ONE preset for the entire video and return its CSS filter values:
 - cool:        { preset: "cool",        brightness: 1.0,  contrast: 1.08, saturate: 0.9,  sepia: 0.0  }
 - punchy:      { preset: "punchy",      brightness: 1.0,  contrast: 1.2,  saturate: 1.3,  sepia: 0.0  }
 - natural:     { preset: "natural",     brightness: 1.0,  contrast: 1.0,  saturate: 1.0,  sepia: 0.0  }
-- studio_warm: { preset: "studio_warm", brightness: 1.0, contrast: 1.28, saturate: 0.87, sepia: 0.03 }
+- studio_warm: { preset: "studio_warm", brightness: 1.05, contrast: 1.42, saturate: 1.12, sepia: 0.06 }
 
 Selection: Gospel/devotional → studio_warm or cinematic. Tech tutorial → cool. High-energy → punchy. Neutral → natural.
-studio_warm gives a medium-bright, high-contrast, slightly muted look with natural skin tones (dark moody background, punchy shadows, barely any colour cast — matches professional studio Gospel/church channels).
+studio_warm is tuned for Apple Log / flat log footage: lifts exposure slightly, crushes milky blacks hard, restores saturation stripped by log, adds a small warm cast for natural skin tones. Result: punchy deep blacks, neutral-bright subject, warm natural skin tones, dark moody background.
 
 == ZOOM CUES (all times in original video seconds) ==
 - Maximum 1 zoom per 30 seconds of video
