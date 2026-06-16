@@ -210,31 +210,32 @@ export function SlideCard({ slide, index, total, theme = 'warm' }: Props) {
     return (
       <div style={{ ...base, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '36px 34px 48px' }}>
         <Grain opacity={t.grain} />
-        {/* Decorative quote */}
+        {/* Decorative quote — pushed above the top edge so it never overlaps content */}
         <div style={{
           position: 'absolute',
-          top: 0,
-          left: 16,
+          top: -60,
+          left: 10,
           fontFamily: 'Georgia, serif',
           fontSize: 180,
           color: text,
-          opacity: 0.06,
+          opacity: 0.07,
           lineHeight: 1,
           userSelect: 'none',
           zIndex: 1,
         }}>"</div>
         <Counter index={index} total={total} color={text} />
-        <div style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}>
+        <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', width: '100%' }}>
           {/* Context line — shown when verse is part of a series */}
           {slide.context && (
             <p style={{
               fontFamily: "'Inter', system-ui, sans-serif",
-              fontSize: 11,
-              fontWeight: 600,
+              fontSize: 10,
+              fontWeight: 700,
               color: t.accent,
-              letterSpacing: '0.12em',
+              letterSpacing: '0.14em',
               textTransform: 'uppercase',
-              margin: '0 0 18px',
+              margin: '0 0 16px',
+              padding: '0 4px',
             }}>
               {slide.context}
             </p>
@@ -272,10 +273,10 @@ export function SlideCard({ slide, index, total, theme = 'warm' }: Props) {
     return (
       <div style={{ ...base, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 30px 48px' }}>
         <Grain opacity={t.grain} />
-        {/* Large decorative open-quote */}
+        {/* Large decorative open-quote — pushed above edge so it never covers text */}
         <div style={{
           position: 'absolute',
-          top: -10,
+          top: -65,
           left: 18,
           fontFamily: 'Georgia, serif',
           fontSize: 200,
