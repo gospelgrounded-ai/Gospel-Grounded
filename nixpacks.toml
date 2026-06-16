@@ -4,5 +4,8 @@ nixPkgs = ["ffmpeg", "nodejs_20"]
 [phases.install]
 cmds = ["npm install"]
 
+[phases.build]
+cmds = []
+
 [start]
 cmd = "npx ts-node src/lut-server.ts"
