@@ -94,10 +94,10 @@ Choose ONE preset for the entire video and return its CSS filter values:
 - cool:        { preset: "cool",        brightness: 1.0,  contrast: 1.08, saturate: 0.9,  sepia: 0.0  }
 - punchy:      { preset: "punchy",      brightness: 1.0,  contrast: 1.2,  saturate: 1.3,  sepia: 0.0  }
 - natural:     { preset: "natural",     brightness: 1.0,  contrast: 1.0,  saturate: 1.0,  sepia: 0.0  }
-- studio_warm: { preset: "studio_warm", brightness: 0.88, contrast: 1.35, saturate: 0.85, sepia: 0.18 }
+- studio_warm: { preset: "studio_warm", brightness: 1.0, contrast: 1.28, saturate: 0.87, sepia: 0.03 }
 
 Selection: Gospel/devotional → studio_warm or cinematic. Tech tutorial → cool. High-energy → punchy. Neutral → natural.
-studio_warm gives a dark, high-contrast, warm-toned look (ideal for church/studio settings).
+studio_warm gives a medium-bright, high-contrast, slightly muted look with natural skin tones (dark moody background, punchy shadows, barely any colour cast — matches professional studio Gospel/church channels).
 
 == ZOOM CUES (all times in original video seconds) ==
 - Maximum 1 zoom per 30 seconds of video
