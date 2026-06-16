@@ -43,7 +43,11 @@ setInterval(() => {
 const lutUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, LUTS_DIR),
-    filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase(); // preserve .cube / .3dl
+      const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9._-]/g, '_');
+      cb(null, `${Date.now()}-${base}${ext}`);
+    },
   }),
   limits: { fileSize: 50 * 1024 * 1024 },
 });
@@ -563,8 +567,9 @@ function runConversion(
     } else {
       job.status = 'error';
       const reason = signal ? `killed by signal ${signal} (OOM — try Fast quality)` : `exited with code ${code}`;
-      job.error = `FFmpeg ${reason}.`;
-      console.error(`[${jobId}] Failed: ${reason}`);
+      const snippet = stderr.slice(-400).trim();
+      job.error = `FFmpeg ${reason}.\n\n${snippet}`;
+      console.error(`[${jobId}] Failed: ${reason}\n${snippet}`);
       fs.unlink(outputPath, () => {});
     }
     fs.unlink(inputPath, () => {});
