@@ -36,6 +36,15 @@ export interface QuoteSlide {
   authorTitle?: string;  // e.g. "Puritan Pastor" or "20th-century apologist"
 }
 
+export interface HistoryEntry {
+  id: string;
+  topic: string;
+  style: string;
+  theme: Theme;
+  createdAt: string;   // ISO date string
+  slideCount: number;
+}
+
 export interface Caption {
   style: string;   // e.g. "Hook", "Story", "List"
   text: string;

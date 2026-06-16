@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import type { Slide, Caption, GenerateRequest, Theme } from './types';
+import type { Slide, Caption, GenerateRequest, Theme, HistoryEntry } from './types';
 import { IdeaForm } from './components/IdeaForm';
 import { SlidePreview } from './components/SlidePreview';
 import { CaptionPanel } from './components/CaptionPanel';
+import { HistoryPanel } from './components/HistoryPanel';
+import { loadHistory, saveToHistory } from './utils/history';
 
 export default function App() {
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -11,6 +13,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
   const [theme, setTheme] = useState<Theme>('warm');
+  const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
 
   const handleGenerate = useCallback(async (req: GenerateRequest) => {
     setLoading(true);
@@ -29,6 +32,17 @@ export default function App() {
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setSlides(data.slides);
       setCaptions(data.captions ?? []);
+
+      const entry: HistoryEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        topic: req.topic,
+        style: req.style ?? 'inspirational',
+        theme: req.theme ?? 'warm',
+        createdAt: new Date().toISOString(),
+        slideCount: (data.slides as Slide[]).length,
+      };
+      saveToHistory(entry);
+      setHistory(loadHistory());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -86,6 +100,12 @@ export default function App() {
         >
           <IdeaForm onGenerate={handleGenerate} loading={loading} />
         </div>
+
+        <HistoryPanel
+          entries={history}
+          onRegenerate={handleGenerate}
+          onEntriesChange={setHistory}
+        />
 
         {/* Error */}
         {error && (
