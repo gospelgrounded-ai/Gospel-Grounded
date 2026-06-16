@@ -205,6 +205,8 @@ export function SlideCard({ slide, index, total, theme = 'warm' }: Props) {
   }
 
   if (slide.type === 'scripture') {
+    // Smaller verse font when the text is long
+    const verseFontSize = slide.verse.length > 180 ? 14 : slide.verse.length > 120 ? 16 : 19;
     return (
       <div style={{ ...base, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '36px 34px 48px' }}>
         <Grain opacity={t.grain} />
@@ -223,9 +225,23 @@ export function SlideCard({ slide, index, total, theme = 'warm' }: Props) {
         }}>"</div>
         <Counter index={index} total={total} color={text} />
         <div style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}>
+          {/* Context line — shown when verse is part of a series */}
+          {slide.context && (
+            <p style={{
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontSize: 11,
+              fontWeight: 600,
+              color: t.accent,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              margin: '0 0 18px',
+            }}>
+              {slide.context}
+            </p>
+          )}
           <p style={{
             fontFamily: "'Playfair Display', Georgia, serif",
-            fontSize: 19,
+            fontSize: verseFontSize,
             fontStyle: 'italic',
             fontWeight: 400,
             color: text,

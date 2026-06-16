@@ -9,22 +9,32 @@ Create Instagram carousel slides and return them as a JSON array. Return ONLY th
 Available slide types with their exact schemas:
 - {"type": "cover", "title": "...", "subtitle": "..."}
 - {"type": "point", "number": 1, "headline": "...", "body": "..."}
-- {"type": "scripture", "verse": "...", "reference": "Book Chapter:Verse (NIV)"}
+- {"type": "scripture", "context": "...", "verse": "...", "reference": "Book Chapter:Verse (NIV)"}
 - {"type": "callout", "statement": "..."}
 - {"type": "cta", "headline": "...", "action": "..."}
 
-Structure rules:
-1. First slide: always "cover"
-2. Last slide: always "cta"
-3. Middle: 4-6 "point" slides, optionally 1 "scripture" and/or 1 "callout" placed naturally
-4. Total: 6-9 slides
+IMPORTANT — detect the topic type and choose the right structure:
+
+A) VERSE-FOCUSED topics (e.g. "N verses about X", "scriptures for Y", "Bible verses when Z"):
+   - cover → N scripture slides → cta
+   - Each scripture slide MUST have a "context" field: a short phrase (5-8 words) that introduces WHY this verse applies
+     e.g. {"type": "scripture", "context": "When anxiety feels overwhelming…", "verse": "...", "reference": "..."}
+   - Include ALL the verses requested (if they ask for 5, give 5 scripture slides)
+   - You may add 1 "callout" slide mid-way if it strengthens the flow
+   - Total: varies based on how many verses requested
+
+B) TEACHING/POINT-BASED topics (e.g. "5 reasons to pray", "how to trust God", "what the Bible says about X"):
+   - cover → 4-6 point slides → optional 1-2 scripture slides → optional callout → cta
+   - Total: 6-9 slides
 
 Text length rules (mobile viewers scan fast):
 - cover.title: max 7 words
 - cover.subtitle: max 12 words
+- scripture.context: 5-8 words, ends with ellipsis or colon
+- scripture.verse: quote the full verse accurately (NIV preferred)
 - point.headline: max 6 words
 - point.body: 1-2 sentences, max 25 words
-- callout.statement: max 12 words, make it bold and shareable
+- callout.statement: max 12 words, bold and shareable
 - cta.headline: max 8 words
 - cta.action: 3-5 words (e.g. "Save this post", "Share with a friend")
 
@@ -33,7 +43,7 @@ Make every word count. Powerful, concise, shareable.`;
 export async function generateSlides(topic: string, style: string = 'inspirational') {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
+    max_tokens: 3000,
     system: SYSTEM_PROMPT,
     messages: [
       {

@@ -13,6 +13,7 @@ export interface PointSlide {
 
 export interface ScriptureSlide {
   type: 'scripture';
+  context?: string;  // short phrase shown above the verse, e.g. "When you feel overwhelmed…"
   verse: string;
   reference: string;
 }
