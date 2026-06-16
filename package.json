@@ -7,6 +7,7 @@
     "studio": "npx remotion studio src/Root.tsx",
     "render": "npx remotion render src/Root.tsx VideoComposition out/video.mp4",
     "transcribe": "ts-node src/transcribe.ts",
+    "audience": "ts-node src/audience-cli.ts",
     "build": "tsc --noEmit"
   },
   "dependencies": {

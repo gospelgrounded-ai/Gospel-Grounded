@@ -64,3 +64,33 @@ export interface EditPlan {
   fps: number;
   durationInSeconds: number;
 }
+
+export interface AudiencePersona {
+  name: string;
+  description: string;
+  interests: string[];
+  age_range: string;
+}
+
+export interface RelatedChannel {
+  channelId: string;
+  channelTitle: string;
+  subscriberCount: string;
+  relevanceReason: string;
+}
+
+export interface AudienceReport {
+  videoTitle: string;
+  generatedAt: string;
+  contentSummary: string;
+  targetPersonas: AudiencePersona[];
+  primaryKeywords: string[];
+  secondaryKeywords: string[];
+  suggestedTitle: string;
+  suggestedDescription: string;
+  suggestedTags: string[];
+  suggestedHashtags: string[];
+  relatedChannels: RelatedChannel[];
+  communityPostSuggestion: string;
+  postingStrategy: string;
+}

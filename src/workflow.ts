@@ -7,6 +7,7 @@ config();
 import { transcribeVideo, shortenWordGaps } from "./transcribe";
 import { planGraphics, buildEditPlan } from "./compose";
 import { renderVideo } from "./render";
+import { generateAudienceReport, printAudienceReport } from "./audience";
 import { EditPlan } from "./types";
 
 const MAX_GAP = parseFloat(process.env.MAX_WORD_GAP ?? "0.2");
@@ -50,7 +51,9 @@ async function run() {
     console.log(`  ${i + 1}. [${g.startTime.toFixed(1)}s-${g.endTime.toFixed(1)}s] ${g.type}`);
   });
 
-  const action = await ask("\nWhat would you like to do?\n  1. Preview in Remotion Studio\n  2. Render final video\n  3. Both\n  q. Quit\nChoice: ");
+  const action = await ask(
+    "\nWhat would you like to do?\n  1. Preview in Remotion Studio\n  2. Render final video\n  3. Both\n  4. Audience targeting report\n  5. Render + Audience report\n  q. Quit\nChoice: "
+  );
 
   if (action === "q") {
     console.log("Exiting.");
@@ -61,10 +64,19 @@ async function run() {
     await launchStudio(plan);
   }
 
-  if (action === "2" || action === "3") {
+  if (action === "2" || action === "3" || action === "5") {
     const outputPath = path.join(OUTPUT_DIR, `${videoTitle}_edited.mp4`);
     await renderVideo(plan, outputPath);
     console.log(`\nFinal video saved to: ${outputPath}`);
+  }
+
+  if (action === "4" || action === "5") {
+    const report = await generateAudienceReport(plan.transcript, videoTitle);
+    const reportPath = path.join(OUTPUT_DIR, `${videoTitle}.audience.json`);
+    const fs = await import("fs");
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+    console.log(`\nAudience report saved to: ${reportPath}`);
+    printAudienceReport(report);
   }
 }
 
