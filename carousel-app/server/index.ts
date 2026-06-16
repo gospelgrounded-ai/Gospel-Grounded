@@ -3,8 +3,10 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { generateSlides } from './generate';
 
-// Load .env from project root (parent of carousel-app/)
+// In production the key comes from the host's env vars.
+// Locally it falls back to the root .env file.
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 app.use(express.json());
@@ -30,7 +32,15 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-const PORT = parseInt(process.env.CAROUSEL_PORT || '3001', 10);
+// In production, serve the Vite-built frontend from ../dist
+if (process.env.NODE_ENV === 'production') {
+  const dist = path.join(__dirname, '../dist');
+  app.use(express.static(dist));
+  app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+}
+
+// Railway injects PORT; fall back to 3001 for local dev
+const PORT = parseInt(process.env.PORT || process.env.CAROUSEL_PORT || '3001', 10);
 app.listen(PORT, () => {
-  console.log(`Carousel API → http://localhost:${PORT}`);
+  console.log(`Carousel server → http://localhost:${PORT} [${process.env.NODE_ENV || 'development'}]`);
 });
