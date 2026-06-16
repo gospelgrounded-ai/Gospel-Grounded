@@ -1,14 +1,20 @@
 import React from "react";
-import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { BulletListData } from "../types";
+import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { BulletListData, GraphicStyle } from "../types";
 
 interface Props {
   data: BulletListData;
+  graphicStyle?: GraphicStyle;
 }
 
-export const BulletList: React.FC<Props> = ({ data }) => {
+export const BulletList: React.FC<Props> = ({ data, graphicStyle }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
+
+  const accent    = graphicStyle?.accent ?? "#e94560";
+  const panelBg   = graphicStyle?.panelBg ?? "rgba(8, 8, 20, 0.88)";
+  const font      = graphicStyle?.font ?? "'Segoe UI', sans-serif";
+  const textColor = graphicStyle?.text ?? "#ffffff";
 
   const containerEnter = spring({ frame, fps, config: { damping: 16, stiffness: 130 } });
   const containerExit = spring({
@@ -27,7 +33,7 @@ export const BulletList: React.FC<Props> = ({ data }) => {
     >
       <div
         style={{
-          background: "rgba(8, 8, 20, 0.88)",
+          background: panelBg,
           borderRadius: 16,
           padding: "32px 48px",
           maxWidth: "55%",
@@ -38,9 +44,9 @@ export const BulletList: React.FC<Props> = ({ data }) => {
         {data.heading && (
           <div
             style={{
-              color: "#e94560",
+              color: accent,
               fontSize: 32,
-              fontFamily: "'Segoe UI', sans-serif",
+              fontFamily: font,
               fontWeight: 700,
               marginBottom: 20,
               textTransform: "uppercase",
@@ -74,16 +80,16 @@ export const BulletList: React.FC<Props> = ({ data }) => {
                   width: 10,
                   height: 10,
                   borderRadius: "50%",
-                  background: "#e94560",
+                  background: accent,
                   marginTop: 14,
                   flexShrink: 0,
                 }}
               />
               <div
                 style={{
-                  color: "#ffffff",
+                  color: textColor,
                   fontSize: 34,
-                  fontFamily: "'Segoe UI', sans-serif",
+                  fontFamily: font,
                   fontWeight: 500,
                   lineHeight: 1.35,
                 }}

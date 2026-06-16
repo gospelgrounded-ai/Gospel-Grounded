@@ -1,14 +1,22 @@
 import React from "react";
 import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { ComparisonChartData } from "../types";
+import { ComparisonChartData, GraphicStyle } from "../types";
 
 interface Props {
   data: ComparisonChartData;
+  graphicStyle?: GraphicStyle;
 }
 
-export const ComparisonChart: React.FC<Props> = ({ data }) => {
+export const ComparisonChart: React.FC<Props> = ({ data, graphicStyle }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
+
+  const accent       = graphicStyle?.accent ?? "#e94560";
+  const accentRight  = graphicStyle?.accentRight ?? "#4ecdc4";
+  const panelBg      = graphicStyle?.panelBg ?? "rgba(8, 8, 20, 0.92)";
+  const font         = graphicStyle?.font ?? "'Segoe UI', sans-serif";
+  const textColor    = graphicStyle?.text ?? "#ffffff";
+  const subtextColor = graphicStyle?.subtext ?? "#aaaacc";
 
   const enter = spring({ frame, fps, config: { damping: 14, stiffness: 110 } });
   const exit = spring({
@@ -26,7 +34,7 @@ export const ComparisonChart: React.FC<Props> = ({ data }) => {
         style={{
           opacity,
           transform: `scale(${scale})`,
-          background: "rgba(8, 8, 20, 0.92)",
+          background: panelBg,
           borderRadius: 20,
           padding: "40px 60px",
           minWidth: 700,
@@ -38,9 +46,9 @@ export const ComparisonChart: React.FC<Props> = ({ data }) => {
           <div
             style={{
               flex: 1,
-              color: "#e94560",
+              color: accent,
               fontSize: 30,
-              fontFamily: "'Segoe UI', sans-serif",
+              fontFamily: font,
               fontWeight: 700,
               textAlign: "center",
             }}
@@ -50,9 +58,9 @@ export const ComparisonChart: React.FC<Props> = ({ data }) => {
           <div
             style={{
               flex: 1,
-              color: "#4ecdc4",
+              color: accentRight,
               fontSize: 30,
-              fontFamily: "'Segoe UI', sans-serif",
+              fontFamily: font,
               fontWeight: 700,
               textAlign: "center",
             }}
@@ -72,9 +80,9 @@ export const ComparisonChart: React.FC<Props> = ({ data }) => {
             <div
               style={{
                 flex: 1,
-                color: "#aaaacc",
+                color: subtextColor,
                 fontSize: 26,
-                fontFamily: "'Segoe UI', sans-serif",
+                fontFamily: font,
                 fontWeight: 500,
               }}
             >
@@ -83,9 +91,9 @@ export const ComparisonChart: React.FC<Props> = ({ data }) => {
             <div
               style={{
                 flex: 1,
-                color: "#ffffff",
+                color: textColor,
                 fontSize: 26,
-                fontFamily: "'Segoe UI', sans-serif",
+                fontFamily: font,
                 textAlign: "center",
               }}
             >
@@ -94,9 +102,9 @@ export const ComparisonChart: React.FC<Props> = ({ data }) => {
             <div
               style={{
                 flex: 1,
-                color: "#ffffff",
+                color: textColor,
                 fontSize: 26,
-                fontFamily: "'Segoe UI', sans-serif",
+                fontFamily: font,
                 textAlign: "center",
               }}
             >

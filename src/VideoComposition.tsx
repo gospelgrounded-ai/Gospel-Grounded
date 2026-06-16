@@ -7,38 +7,62 @@ import {
   useCurrentFrame,
   spring,
 } from "remotion";
-import { EditPlan, GraphicCue, ZoomCue, CutPoint } from "./types";
+import { EditPlan, GraphicCue, GraphicStyle, ZoomCue, CutPoint } from "./types";
 import { TextOverlay } from "./animations/TextOverlay";
 import { LowerThird } from "./animations/LowerThird";
 import { BulletList } from "./animations/BulletList";
 import { ComparisonChart } from "./animations/ComparisonChart";
 import { TitleCard } from "./animations/TitleCard";
 import { computeRetainedSegments, remapTime } from "./editUtils";
+import { getStyle } from "./styles";
 
 interface Props {
   plan: EditPlan | null;
 }
 
-function GraphicSequence({ cue, fps }: { cue: GraphicCue; fps: number }) {
+function GraphicSequence({
+  cue,
+  fps,
+  graphicStyle,
+}: {
+  cue: GraphicCue;
+  fps: number;
+  graphicStyle: GraphicStyle;
+}) {
   const from = Math.round(cue.startTime * fps);
   const durationInFrames = Math.max(1, Math.round((cue.endTime - cue.startTime) * fps));
 
   return (
     <Sequence from={from} durationInFrames={durationInFrames}>
       {cue.type === "text_overlay" && (
-        <TextOverlay data={cue.data as import("./types").TextOverlayData} />
+        <TextOverlay
+          data={cue.data as import("./types").TextOverlayData}
+          graphicStyle={graphicStyle}
+        />
       )}
       {cue.type === "lower_third" && (
-        <LowerThird data={cue.data as import("./types").LowerThirdData} />
+        <LowerThird
+          data={cue.data as import("./types").LowerThirdData}
+          graphicStyle={graphicStyle}
+        />
       )}
       {cue.type === "bullet_list" && (
-        <BulletList data={cue.data as import("./types").BulletListData} />
+        <BulletList
+          data={cue.data as import("./types").BulletListData}
+          graphicStyle={graphicStyle}
+        />
       )}
       {cue.type === "comparison_chart" && (
-        <ComparisonChart data={cue.data as import("./types").ComparisonChartData} />
+        <ComparisonChart
+          data={cue.data as import("./types").ComparisonChartData}
+          graphicStyle={graphicStyle}
+        />
       )}
       {cue.type === "title_card" && (
-        <TitleCard data={cue.data as import("./types").TitleCardData} />
+        <TitleCard
+          data={cue.data as import("./types").TitleCardData}
+          graphicStyle={graphicStyle}
+        />
       )}
     </Sequence>
   );
@@ -106,6 +130,8 @@ export const VideoComposition: React.FC<Props> = ({ plan }) => {
     );
   }
 
+  const graphicStyle = getStyle(plan.style);
+
   const colorGrade = plan.colorGrade ?? { brightness: 1, contrast: 1, saturate: 1, sepia: 0 };
   const colorFilter = `brightness(${colorGrade.brightness}) contrast(${colorGrade.contrast}) saturate(${colorGrade.saturate}) sepia(${colorGrade.sepia})`;
 
@@ -151,7 +177,7 @@ export const VideoComposition: React.FC<Props> = ({ plan }) => {
         )}
       </AbsoluteFill>
       {remappedGraphics.map((cue, i) => (
-        <GraphicSequence key={i} cue={cue} fps={fps} />
+        <GraphicSequence key={i} cue={cue} fps={fps} graphicStyle={graphicStyle} />
       ))}
     </AbsoluteFill>
   );

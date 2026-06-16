@@ -7,9 +7,17 @@ config();
 
 import { createJob, updateJob, getJob, listJobs, jobEmitter, Job } from "./jobs";
 import { runPipeline } from "./workflow";
+import { EditFeatures, GraphicStyleName } from "./types";
 
 const PORT = parseInt(process.env.SERVER_PORT ?? "3001");
 const UPLOADS_DIR = path.resolve("./uploads");
+
+const DEFAULT_FEATURES: EditFeatures = {
+  colorGrade: true,
+  zooms: true,
+  jumpCuts: true,
+  graphics: true,
+};
 
 const app = express();
 
@@ -30,7 +38,9 @@ async function processJob(
   jobId: string,
   fsPath: string,         // absolute filesystem path for FFmpeg
   originalName: string,
-  remotionUrl: string     // HTTP URL for Remotion renderer
+  remotionUrl: string,    // HTTP URL for Remotion renderer
+  features: EditFeatures,
+  style: GraphicStyleName
 ): Promise<void> {
   const outputDir = process.env.OUTPUT_DIR ?? "./out";
   const videoTitle = path.basename(originalName, path.extname(originalName));
@@ -54,7 +64,9 @@ async function processJob(
           progress: msg,
         });
       },
-      remotionUrl
+      remotionUrl,
+      features,
+      style
     );
 
     updateJob(jobId, { status: "done", progress: "Done! Your video is ready to download.", outputPath });
@@ -76,6 +88,17 @@ app.post("/upload", upload.single("video"), (req, res) => {
   const namedFile = req.file.path + ext;
   fs.renameSync(req.file.path, namedFile);
 
+  // Parse style and features from form fields
+  const style = (req.body?.style as GraphicStyleName) ?? "bold";
+  let features: EditFeatures = DEFAULT_FEATURES;
+  if (req.body?.features) {
+    try {
+      features = JSON.parse(req.body.features) as EditFeatures;
+    } catch {
+      // malformed JSON — use defaults
+    }
+  }
+
   // Pass an HTTP URL so Remotion's Chromium renderer can fetch the video during rendering
   const videoUrl = `http://localhost:${PORT}/uploads/${path.basename(namedFile)}`;
   // Use the absolute filesystem path for FFmpeg (audio extraction)
@@ -85,7 +108,7 @@ app.post("/upload", upload.single("video"), (req, res) => {
   res.json({ jobId: job.id });
 
   // FFmpeg reads the local file; Remotion fetches via HTTP from our Express server
-  processJob(job.id, absolutePath, req.file.originalname, videoUrl);
+  processJob(job.id, absolutePath, req.file.originalname, videoUrl, features, style);
 });
 
 // SSE status stream — keeps mobile browser updated during long processing

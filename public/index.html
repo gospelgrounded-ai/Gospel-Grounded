@@ -43,6 +43,131 @@
       margin: 0 auto 20px;
     }
 
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Style Picker ────────────────────────────── */
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .style-card {
+      background: rgba(255,255,255,0.04);
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px 6px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+
+    .style-card:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .style-card.selected {
+      border-color: var(--swatch);
+      background: rgba(255,255,255,0.07);
+    }
+
+    .style-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      margin: 0 auto 6px;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+
+    .style-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #ccc;
+      display: block;
+    }
+
+    .style-card.selected .style-name {
+      color: #fff;
+    }
+
+    .style-hint {
+      font-size: 11px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    /* ── Feature Toggles ─────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .feature-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .feature-toggle:hover { background: rgba(255,255,255,0.07); }
+
+    .feature-toggle.on  { border-color: rgba(233,69,96,0.4); background: rgba(233,69,96,0.07); }
+
+    .toggle-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .toggle-label {
+      flex: 1;
+    }
+
+    .toggle-label strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .toggle-label span {
+      font-size: 11px;
+      color: #666;
+    }
+
+    .toggle-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .feature-toggle.on .toggle-check {
+      background: #e94560;
+      border-color: #e94560;
+    }
+
+    /* ── Drop Zone ───────────────────────────────── */
     .drop-zone {
       border: 2px dashed rgba(233,69,96,0.5);
       border-radius: 12px;
@@ -234,13 +359,10 @@
     .badge-failed  { background: rgba(248,113,113,0.15); color: #f87171; }
     .badge-active  { background: rgba(233,69,96,0.15); color: #e94560; }
 
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 20px 0;
     }
   </style>
 </head>
@@ -252,6 +374,75 @@
 
   <!-- Upload card -->
   <div class="card" id="upload-card">
+
+    <!-- Style Picker -->
+    <p class="section-title">Motion Graphic Style</p>
+    <div class="style-grid" id="style-grid">
+      <div class="style-card selected" data-style="bold" style="--swatch:#e94560">
+        <div class="style-swatch" style="background:#e94560;"></div>
+        <span class="style-name">Bold</span>
+      </div>
+      <div class="style-card" data-style="gospel" style="--swatch:#d4af37">
+        <div class="style-swatch" style="background:#d4af37;"></div>
+        <span class="style-name">Gospel</span>
+      </div>
+      <div class="style-card" data-style="modern" style="--swatch:#00d4ff">
+        <div class="style-swatch" style="background:linear-gradient(135deg,#00d4ff,#8b00ff);"></div>
+        <span class="style-name">Modern</span>
+      </div>
+      <div class="style-card" data-style="documentary" style="--swatch:#c9834a">
+        <div class="style-swatch" style="background:#c9834a;"></div>
+        <span class="style-name">Docu</span>
+      </div>
+      <div class="style-card" data-style="minimal" style="--swatch:#ffffff">
+        <div class="style-swatch" style="background:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.3);"></div>
+        <span class="style-name">Minimal</span>
+      </div>
+    </div>
+    <p class="style-hint" id="style-hint">High-energy, bold red accents, modern sans-serif</p>
+
+    <div class="divider"></div>
+
+    <!-- Feature Toggles -->
+    <p class="section-title">Features</p>
+    <div class="features-grid">
+      <div class="feature-toggle on" data-feature="colorGrade">
+        <span class="toggle-icon">🎨</span>
+        <div class="toggle-label">
+          <strong>Color Grade</strong>
+          <span>Studio-warm cinematic look</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
+      <div class="feature-toggle on" data-feature="zooms">
+        <span class="toggle-icon">🔍</span>
+        <div class="toggle-label">
+          <strong>Smooth Zooms</strong>
+          <span>Emphasise key moments</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
+      <div class="feature-toggle on" data-feature="graphics">
+        <span class="toggle-icon">✨</span>
+        <div class="toggle-label">
+          <strong>Motion Graphics</strong>
+          <span>Overlays and lower thirds</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
+      <div class="feature-toggle on" data-feature="jumpCuts">
+        <span class="toggle-icon">✂️</span>
+        <div class="toggle-label">
+          <strong>Jump Cuts</strong>
+          <span>Remove long dead air</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- File Drop Zone -->
     <div class="drop-zone" id="drop-zone">
       <input type="file" id="file-input" accept=".mp4,.mov,.m4v" />
       <div class="drop-icon">🎬</div>
@@ -293,9 +484,42 @@
   </div>
 
   <script>
-    const fileInput = document.getElementById('file-input');
-    const fileName  = document.getElementById('file-name');
-    const uploadBtn = document.getElementById('upload-btn');
+    /* ── Style descriptions ──────────────────────── */
+    const STYLE_HINTS = {
+      bold:        'High-energy, bold red accents, modern sans-serif',
+      gospel:      'Warm gold accents, reverent serif font, church aesthetic',
+      modern:      'Cyan-purple gradient, sleek YouTube creator look',
+      documentary: 'Amber accents, warm serif, journalistic gravitas',
+      minimal:     'Clean white, transparent panels, zero distraction',
+    };
+
+    let selectedStyle = 'bold';
+    const features = { colorGrade: true, zooms: true, jumpCuts: true, graphics: true };
+
+    /* ── Style picker ────────────────────────────── */
+    document.querySelectorAll('.style-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedStyle = card.dataset.style;
+        document.getElementById('style-hint').textContent = STYLE_HINTS[selectedStyle] || '';
+      });
+    });
+
+    /* ── Feature toggles ─────────────────────────── */
+    document.querySelectorAll('.feature-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const key = toggle.dataset.feature;
+        features[key] = !features[key];
+        toggle.classList.toggle('on', features[key]);
+        toggle.querySelector('.toggle-check').textContent = features[key] ? '✓' : '';
+      });
+    });
+
+    /* ── Upload logic ────────────────────────────── */
+    const fileInput  = document.getElementById('file-input');
+    const fileName   = document.getElementById('file-name');
+    const uploadBtn  = document.getElementById('upload-btn');
     const progressWrap = document.getElementById('progress-wrap');
     const progressBar  = document.getElementById('progress-bar');
     const uploadPct    = document.getElementById('upload-pct');
@@ -309,7 +533,6 @@
     let sseSource = null;
     let pollInterval = null;
 
-    // File selection
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (file) {
@@ -318,7 +541,6 @@
       }
     });
 
-    // Drag highlight
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('active'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
     dropZone.addEventListener('drop', (e) => {
@@ -330,7 +552,6 @@
       }
     });
 
-    // Upload
     uploadBtn.addEventListener('click', () => {
       const file = fileInput.files[0];
       if (!file) return;
@@ -342,6 +563,8 @@
 
       const formData = new FormData();
       formData.append('video', file);
+      formData.append('style', selectedStyle);
+      formData.append('features', JSON.stringify(features));
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/upload');
@@ -358,6 +581,7 @@
         if (xhr.status === 200) {
           const { jobId } = JSON.parse(xhr.responseText);
           currentJobId = jobId;
+          sessionStorage.setItem('jobId', jobId);
           uploadPct.textContent = 'Upload complete. Processing…';
           progressBar.style.width = '100%';
           statusCard.style.display = 'block';
@@ -379,7 +603,6 @@
     });
 
     function startTracking(jobId) {
-      // SSE for live updates
       if (sseSource) sseSource.close();
       sseSource = new EventSource('/status/' + jobId);
       sseSource.onmessage = (e) => {
@@ -387,7 +610,6 @@
       };
       sseSource.onerror = () => {
         sseSource.close();
-        // Fall back to polling when SSE drops (e.g. screen lock)
         if (!pollInterval) {
           pollInterval = setInterval(() => pollJob(jobId), 5000);
         }
@@ -425,33 +647,19 @@
       }
     }
 
-    const stageOrder = ['transcribing', 'planning', 'rendering', 'done'];
-
     function setStage(status) {
-      const idx = stageOrder.indexOf(status);
-      ['transcribing', 'planning', 'rendering'].forEach((s, i) => {
-        const el = document.getElementById('stage-' + s);
-        el.className = 'stage';
-        if (i < idx) el.classList.add('done');
-        else if (i === idx || (status === 'done' && i === 2)) el.classList.add('done');
-        else if (s === status) el.classList.add('active');
-        if (status === 'failed') el.classList.add('failed');
+      ['transcribing', 'planning', 'rendering'].forEach(s => {
+        document.getElementById('stage-' + s).className = 'stage';
       });
-      if (status === 'transcribing') {
-        document.getElementById('stage-transcribing').classList.add('active');
-      } else if (status === 'planning') {
-        document.getElementById('stage-transcribing').classList.replace('active', 'done') ||
-          document.getElementById('stage-transcribing').classList.add('done');
-        document.getElementById('stage-planning').classList.add('active');
-      } else if (status === 'rendering') {
-        document.getElementById('stage-transcribing').classList.add('done');
-        document.getElementById('stage-planning').classList.add('done');
-        document.getElementById('stage-rendering').classList.add('active');
-      } else if (status === 'done') {
-        document.getElementById('stage-transcribing').classList.add('done');
-        document.getElementById('stage-planning').classList.add('done');
-        document.getElementById('stage-rendering').classList.add('done');
-      }
+      const order = ['transcribing', 'planning', 'rendering'];
+      const idx = order.indexOf(status);
+      order.forEach((s, i) => {
+        const el = document.getElementById('stage-' + s);
+        if (status === 'done') { el.classList.add('done'); return; }
+        if (status === 'failed') { el.classList.add('failed'); return; }
+        if (i < idx)       el.classList.add('done');
+        else if (i === idx) el.classList.add('active');
+      });
     }
 
     function loadJobs() {
@@ -489,7 +697,7 @@
       return (b / 1024 ** 3).toFixed(2) + ' GB';
     }
 
-    // Resume tracking a job if user reloads the page mid-processing
+    // Resume tracking if user reloads mid-processing
     const savedJobId = sessionStorage.getItem('jobId');
     if (savedJobId) {
       fetch('/api/jobs/' + savedJobId)
@@ -504,9 +712,6 @@
         })
         .catch(() => {});
     }
-
-    // Save job id to session so page reload can resume tracking
-    const origStartTracking = startTracking;
 
     loadJobs();
   </script>

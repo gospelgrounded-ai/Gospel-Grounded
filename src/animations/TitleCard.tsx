@@ -1,14 +1,18 @@
 import React from "react";
 import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { TitleCardData } from "../types";
+import { GraphicStyle, TitleCardData } from "../types";
 
 interface Props {
   data: TitleCardData;
+  graphicStyle?: GraphicStyle;
 }
 
-export const TitleCard: React.FC<Props> = ({ data }) => {
+export const TitleCard: React.FC<Props> = ({ data, graphicStyle }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
+
+  const accent = graphicStyle?.accent ?? "#e94560";
+  const font   = graphicStyle?.titleFont ?? "'Segoe UI', sans-serif";
 
   const enter = spring({ frame, fps, config: { damping: 12, stiffness: 100 } });
   const exit = spring({
@@ -22,7 +26,7 @@ export const TitleCard: React.FC<Props> = ({ data }) => {
       style={{
         justifyContent: "center",
         alignItems: "center",
-        background: "linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.0) 100%)",
+        background: "linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.0) 100%)",
       }}
     >
       <div
@@ -36,10 +40,10 @@ export const TitleCard: React.FC<Props> = ({ data }) => {
           style={{
             color: "#ffffff",
             fontSize: 80,
-            fontFamily: "'Segoe UI', sans-serif",
+            fontFamily: font,
             fontWeight: 800,
             lineHeight: 1.1,
-            textShadow: "0 4px 20px rgba(0,0,0,0.6)",
+            textShadow: "0 4px 24px rgba(0,0,0,0.75)",
             letterSpacing: "-2px",
             maxWidth: 1200,
           }}
@@ -49,9 +53,9 @@ export const TitleCard: React.FC<Props> = ({ data }) => {
         {data.subtitle && (
           <div
             style={{
-              color: "#e94560",
+              color: accent,
               fontSize: 42,
-              fontFamily: "'Segoe UI', sans-serif",
+              fontFamily: font,
               fontWeight: 500,
               marginTop: 24,
               letterSpacing: "4px",

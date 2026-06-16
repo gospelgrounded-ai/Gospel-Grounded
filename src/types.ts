@@ -57,7 +57,13 @@ export interface TitleCardData {
   subtitle?: string;
 }
 
-export type ColorGradePreset = "cinematic" | "warm" | "cool" | "punchy" | "natural";
+export type ColorGradePreset =
+  | "cinematic"
+  | "warm"
+  | "cool"
+  | "punchy"
+  | "natural"
+  | "studio_warm";
 
 export interface ColorGradeSettings {
   preset: ColorGradePreset;
@@ -81,6 +87,27 @@ export interface CutPoint {
   reason: string;
 }
 
+export type GraphicStyleName = "bold" | "gospel" | "modern" | "documentary" | "minimal";
+
+export interface GraphicStyle {
+  accent: string;
+  accentGradient: string;
+  accentRight: string;
+  panelBg: string;
+  overlayBg: string;
+  text: string;
+  subtext: string;
+  font: string;
+  titleFont: string;
+}
+
+export interface EditFeatures {
+  colorGrade: boolean;
+  zooms: boolean;
+  jumpCuts: boolean;
+  graphics: boolean;
+}
+
 export interface EditPlan {
   videoPath: string;
   transcript: Transcript;
@@ -90,4 +117,6 @@ export interface EditPlan {
   cutPoints: CutPoint[];
   fps: number;
   durationInSeconds: number;
+  style?: GraphicStyleName;
+  features?: EditFeatures;
 }

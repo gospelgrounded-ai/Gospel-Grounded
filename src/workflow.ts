@@ -7,10 +7,17 @@ config();
 import { transcribeVideo, shortenWordGaps } from "./transcribe";
 import { planGraphics, buildEditPlan } from "./compose";
 import { renderVideo } from "./render";
-import { EditPlan } from "./types";
+import { EditFeatures, EditPlan, GraphicStyleName } from "./types";
 
 const MAX_GAP = parseFloat(process.env.MAX_WORD_GAP ?? "0.2");
 const OUTPUT_DIR = process.env.OUTPUT_DIR ?? "./out";
+
+const DEFAULT_FEATURES: EditFeatures = {
+  colorGrade: true,
+  zooms: true,
+  jumpCuts: true,
+  graphics: true,
+};
 
 function ask(question: string): Promise<string> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -22,7 +29,9 @@ export async function runPipeline(
   videoTitle: string,
   outputDir: string,
   onProgress: (msg: string) => void = console.log,
-  remotionVideoUrl?: string   // HTTP URL for Remotion renderer (falls back to videoPath)
+  remotionVideoUrl?: string,  // HTTP URL for Remotion renderer (falls back to videoPath)
+  features: EditFeatures = DEFAULT_FEATURES,
+  style: GraphicStyleName = "bold"
 ): Promise<string> {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
@@ -31,12 +40,15 @@ export async function runPipeline(
   const transcript = shortenWordGaps(rawTranscript, MAX_GAP);
 
   onProgress("Planning edits with Claude (color grade, zooms, cuts, graphics)...");
-  const { graphics, colorGrade, zoomCues, cutPoints } = await planGraphics(transcript, videoTitle);
+  const { graphics, colorGrade, zoomCues, cutPoints } = await planGraphics(
+    transcript, videoTitle, features
+  );
 
   // EditPlan.videoPath must be accessible by Remotion's Chromium renderer via HTTP
   const planVideoPath = remotionVideoUrl ?? videoPath;
   const plan = buildEditPlan(
-    planVideoPath, transcript, graphics, colorGrade, zoomCues, cutPoints, duration
+    planVideoPath, transcript, graphics, colorGrade, zoomCues, cutPoints, duration,
+    30, style, features
   );
 
   const planCachePath = path.join(outputDir, `${videoTitle}.plan.json`);

@@ -1,14 +1,22 @@
 import React from "react";
 import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { LowerThirdData } from "../types";
+import { GraphicStyle, LowerThirdData } from "../types";
 
 interface Props {
   data: LowerThirdData;
+  graphicStyle?: GraphicStyle;
 }
 
-export const LowerThird: React.FC<Props> = ({ data }) => {
+export const LowerThird: React.FC<Props> = ({ data, graphicStyle }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
+
+  const accent         = graphicStyle?.accent ?? "#e94560";
+  const accentGradient = graphicStyle?.accentGradient ?? "linear-gradient(90deg, #e94560 0%, #c0392b 100%)";
+  const panelBg        = graphicStyle?.panelBg ?? "rgba(10, 10, 20, 0.85)";
+  const font           = graphicStyle?.font ?? "'Segoe UI', sans-serif";
+  const textColor      = graphicStyle?.text ?? "#ffffff";
+  const subtextColor   = graphicStyle?.subtext ?? "#aaaacc";
 
   const enter = spring({ frame, fps, config: { damping: 18, stiffness: 150 } });
   const exit = spring({
@@ -36,7 +44,7 @@ export const LowerThird: React.FC<Props> = ({ data }) => {
       >
         <div
           style={{
-            background: "linear-gradient(90deg, #e94560 0%, #c0392b 100%)",
+            background: accentGradient,
             height: 4,
             width: "100%",
             marginBottom: 8,
@@ -45,17 +53,17 @@ export const LowerThird: React.FC<Props> = ({ data }) => {
         />
         <div
           style={{
-            background: "rgba(10, 10, 20, 0.85)",
+            background: panelBg,
             padding: "14px 28px",
             borderRadius: "0 8px 8px 0",
-            borderLeft: "4px solid #e94560",
+            borderLeft: `4px solid ${accent}`,
           }}
         >
           <div
             style={{
-              color: "#ffffff",
+              color: textColor,
               fontSize: 40,
-              fontFamily: "'Segoe UI', sans-serif",
+              fontFamily: font,
               fontWeight: 700,
               lineHeight: 1.2,
             }}
@@ -65,9 +73,9 @@ export const LowerThird: React.FC<Props> = ({ data }) => {
           {data.subtitle && (
             <div
               style={{
-                color: "#aaaacc",
+                color: subtextColor,
                 fontSize: 28,
-                fontFamily: "'Segoe UI', sans-serif",
+                fontFamily: font,
                 fontWeight: 400,
                 marginTop: 4,
               }}

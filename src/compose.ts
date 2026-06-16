@@ -1,5 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { Transcript, GraphicCue, EditPlan, ColorGradeSettings, ZoomCue, CutPoint } from "./types";
+import {
+  Transcript,
+  GraphicCue,
+  EditPlan,
+  ColorGradeSettings,
+  ZoomCue,
+  CutPoint,
+  EditFeatures,
+  GraphicStyleName,
+} from "./types";
 import { z } from "zod";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
@@ -13,7 +22,7 @@ const GraphicCueSchema = z.object({
 }).passthrough();
 
 const ColorGradeSchema = z.object({
-  preset: z.enum(["cinematic", "warm", "cool", "punchy", "natural"]),
+  preset: z.enum(["cinematic", "warm", "cool", "punchy", "natural", "studio_warm"]),
   brightness: z.number(),
   contrast: z.number(),
   saturate: z.number(),
@@ -74,13 +83,15 @@ Rules:
 
 == COLOR GRADING ==
 Choose ONE preset for the entire video and return its CSS filter values:
-- cinematic: { preset: "cinematic", brightness: 0.95, contrast: 1.1, saturate: 0.85, sepia: 0.05 }
-- warm:      { preset: "warm",      brightness: 1.05, contrast: 1.05, saturate: 1.1,  sepia: 0.15 }
-- cool:      { preset: "cool",      brightness: 1.0,  contrast: 1.08, saturate: 0.9,  sepia: 0.0  }
-- punchy:    { preset: "punchy",    brightness: 1.0,  contrast: 1.2,  saturate: 1.3,  sepia: 0.0  }
-- natural:   { preset: "natural",   brightness: 1.0,  contrast: 1.0,  saturate: 1.0,  sepia: 0.0  }
+- cinematic:   { preset: "cinematic",   brightness: 0.95, contrast: 1.1,  saturate: 0.85, sepia: 0.05 }
+- warm:        { preset: "warm",        brightness: 1.05, contrast: 1.05, saturate: 1.1,  sepia: 0.15 }
+- cool:        { preset: "cool",        brightness: 1.0,  contrast: 1.08, saturate: 0.9,  sepia: 0.0  }
+- punchy:      { preset: "punchy",      brightness: 1.0,  contrast: 1.2,  saturate: 1.3,  sepia: 0.0  }
+- natural:     { preset: "natural",     brightness: 1.0,  contrast: 1.0,  saturate: 1.0,  sepia: 0.0  }
+- studio_warm: { preset: "studio_warm", brightness: 0.88, contrast: 1.35, saturate: 0.85, sepia: 0.18 }
 
-Selection: Gospel/devotional → cinematic or warm. Tech tutorial → cool. High-energy → punchy. Neutral → natural.
+Selection: Gospel/devotional → studio_warm or cinematic. Tech tutorial → cool. High-energy → punchy. Neutral → natural.
+studio_warm gives a dark, high-contrast, warm-toned look (ideal for church/studio settings).
 
 == ZOOM CUES (all times in original video seconds) ==
 - Maximum 1 zoom per 30 seconds of video
@@ -90,22 +101,40 @@ Selection: Gospel/devotional → cinematic or warm. Tech tutorial → cool. High
 - originX: 0.5, originY: 0.5 for center zoom (default)
 
 == JUMP CUTS (all times in original video seconds) ==
-Remove ONLY these:
-1. Filler words: "um", "uh", "er", "like" (as filler), "you know", "sort of", "kind of" — use word timestamps to isolate the exact word gap
-2. Silences/pauses: gaps between consecutive words > 0.8 seconds
-3. Repeated phrases: speaker restarts the same sentence
+Remove ONLY these — and be VERY conservative:
+1. Filler words: "um", "uh", "er" — use word timestamps to isolate the exact word
+2. Dead air / silences: gaps between consecutive words > 2.0 seconds (only obvious dead silence, NOT intentional dramatic pauses)
+3. Obvious restarts: speaker clearly restarts the exact same sentence from the beginning
 
 Rules:
-- Minimum cut duration: 0.3 seconds
-- Be conservative — preserve natural speech rhythm
-- Do NOT cut mid-sentence pauses that are part of normal delivery
+- Minimum cut duration: 0.5 seconds
+- DO NOT cut pauses shorter than 2.0 seconds — many are intentional for emphasis and rhythm
+- DO NOT cut mid-sentence pauses — they are part of natural delivery
+- DO NOT cut after rhetorical questions or before a key point
 - Sort cutPoints by startTime ascending
+- When in doubt, DO NOT cut
 
 Return ONLY valid JSON, no markdown, no explanation.`;
 
+const DEFAULT_FEATURES: EditFeatures = {
+  colorGrade: true,
+  zooms: true,
+  jumpCuts: true,
+  graphics: true,
+};
+
+const NATURAL_COLOR_GRADE: ColorGradeSettings = {
+  preset: "natural",
+  brightness: 1.0,
+  contrast: 1.0,
+  saturate: 1.0,
+  sepia: 0.0,
+};
+
 export async function planGraphics(
   transcript: Transcript,
-  videoTitle: string = "Video"
+  videoTitle: string = "Video",
+  features: EditFeatures = DEFAULT_FEATURES
 ): Promise<{ graphics: GraphicCue[]; colorGrade: ColorGradeSettings; zoomCues: ZoomCue[]; cutPoints: CutPoint[] }> {
   const transcriptText = transcript.segments
     .map((s) => {
@@ -141,18 +170,21 @@ Plan the full edit. Return JSON with "graphics", "colorGrade", "zoomCues", and "
 
   // Normalise graphics: Claude sometimes returns type-specific fields flat on the object
   // (e.g. { type, startTime, endTime, title, subtitle }) instead of nested under "data".
-  // This handles both formats.
   const graphics = parsed.graphics.map((g: Record<string, unknown>) => {
-    if (g.data && typeof g.data === "object") return g; // already correct shape
+    if (g.data && typeof g.data === "object") return g;
     const { type, startTime, endTime, ...rest } = g;
     return { type, startTime, endTime, data: rest };
   }) as unknown as GraphicCue[];
 
   return {
-    graphics,
-    colorGrade: parsed.colorGrade as ColorGradeSettings,
-    zoomCues: parsed.zoomCues as ZoomCue[],
-    cutPoints: (parsed.cutPoints as CutPoint[]).sort((a, b) => a.startTime - b.startTime),
+    graphics: features.graphics ? graphics : [],
+    colorGrade: features.colorGrade
+      ? (parsed.colorGrade as ColorGradeSettings)
+      : NATURAL_COLOR_GRADE,
+    zoomCues: features.zooms ? (parsed.zoomCues as ZoomCue[]) : [],
+    cutPoints: features.jumpCuts
+      ? (parsed.cutPoints as CutPoint[]).sort((a, b) => a.startTime - b.startTime)
+      : [],
   };
 }
 
@@ -164,7 +196,9 @@ export function buildEditPlan(
   zoomCues: ZoomCue[],
   cutPoints: CutPoint[],
   duration: number,
-  fps: number = 30
+  fps: number = 30,
+  style: GraphicStyleName = "bold",
+  features: EditFeatures = DEFAULT_FEATURES
 ): EditPlan {
   return {
     videoPath,
@@ -175,5 +209,7 @@ export function buildEditPlan(
     cutPoints,
     fps,
     durationInSeconds: duration,
+    style,
+    features,
   };
 }
