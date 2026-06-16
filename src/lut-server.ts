@@ -427,7 +427,8 @@ function runConversion(
   job.status = 'running';
 
   const crfMap: Record<string, string> = { high: '18', balanced: '23', fast: '28' };
-  const presetMap: Record<string, string> = { high: 'slow', balanced: 'medium', fast: 'fast' };
+  // Cap at medium — "slow" is killed by Railway's OOM/CPU limits on large files
+  const presetMap: Record<string, string> = { high: 'medium', balanced: 'medium', fast: 'fast' };
   const crf = crfMap[quality] ?? '23';
   const preset = presetMap[quality] ?? 'medium';
 
@@ -447,6 +448,7 @@ function runConversion(
     '-c:v', 'libx264',
     '-crf', crf,
     '-preset', preset,
+    '-threads', '2',        // cap CPU threads to stay within Railway's resource limits
     '-c:a', 'copy',
     '-movflags', '+faststart',
     '-progress', 'pipe:2',
@@ -482,15 +484,16 @@ function runConversion(
     }
   });
 
-  proc.on('close', code => {
+  proc.on('close', (code, signal) => {
     if (code === 0) {
       job.status = 'done';
       job.progress = 100;
       console.log(`[${jobId}] Done → ${outputPath}`);
     } else {
       job.status = 'error';
-      job.error = `FFmpeg exited with code ${code}. Last output:\n${stderr.slice(-800)}`;
-      console.error(`[${jobId}] FFmpeg error (code ${code})`);
+      const reason = signal ? `killed by signal ${signal} (likely OOM)` : `exited with code ${code}`;
+      job.error = `FFmpeg ${reason}. Try "Fast" quality or a shorter clip.`;
+      console.error(`[${jobId}] FFmpeg failed: ${reason}`);
       fs.unlink(outputPath, () => {});
     }
     fs.unlink(inputPath, () => {});
