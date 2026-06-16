@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { spawn } from 'child_process';
 
-const PORT = parseInt(process.env.LUT_SERVER_PORT || '4000', 10);
+const PORT = parseInt(process.env.PORT || process.env.LUT_SERVER_PORT || '4000', 10);
 const UPLOAD_DIR = path.resolve('./uploads');
 const OUTPUT_DIR = path.resolve('./out');
 const LUTS_DIR = path.resolve('./luts');
