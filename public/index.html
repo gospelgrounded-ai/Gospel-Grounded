@@ -458,6 +458,22 @@
         </div>
         <div class="toggle-check">✓</div>
       </div>
+      <div class="feature-toggle on" data-feature="broll">
+        <span class="toggle-icon">🎬</span>
+        <div class="toggle-label">
+          <strong>B-Roll</strong>
+          <span>Pexels clips via AI query</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
+      <div class="feature-toggle on" data-feature="bgMusic">
+        <span class="toggle-icon">🎵</span>
+        <div class="toggle-label">
+          <strong>Background Music</strong>
+          <span>Uppbeat tracks from ./music/</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -518,7 +534,7 @@
     };
 
     let selectedStyle = 'bold';
-    const features = { colorGrade: true, zooms: true, jumpCuts: true, graphics: true, audioEngineer: true, sfx: true };
+    const features = { colorGrade: true, zooms: true, jumpCuts: true, graphics: true, audioEngineer: true, sfx: true, broll: true, bgMusic: true };
 
     /* ── Style picker ────────────────────────────── */
     document.querySelectorAll('.style-card').forEach(card => {

@@ -93,6 +93,14 @@ export interface CutPoint {
   reason: string;
 }
 
+export type MusicMood = "devotional" | "energetic" | "reflective" | "uplifting" | "peaceful" | "dramatic";
+
+export interface BrollCue {
+  startTime: number;  // original video time
+  endTime: number;
+  query: string;      // Pexels search query
+}
+
 export type GraphicStyleName = "bold" | "gospel" | "modern" | "documentary" | "minimal" | "liquid_glass";
 
 export interface GraphicStyle {
@@ -116,6 +124,8 @@ export interface EditFeatures {
   graphics: boolean;
   audioEngineer: boolean;
   sfx: boolean;
+  broll: boolean;
+  bgMusic: boolean;
 }
 
 export interface EditPlan {
@@ -125,6 +135,8 @@ export interface EditPlan {
   colorGrade: ColorGradeSettings;
   zoomCues: ZoomCue[];
   cutPoints: CutPoint[];
+  brollCues?: BrollCue[];
+  musicMood?: MusicMood;
   fps: number;
   durationInSeconds: number;
   style?: GraphicStyleName;

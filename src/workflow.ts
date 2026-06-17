@@ -9,6 +9,8 @@ import { planGraphics, buildEditPlan } from "./compose";
 import { renderVideo } from "./render";
 import { engineerAudio } from "./audioEngineer";
 import { ensureSfxFiles, mixSfx } from "./sfx";
+import { fetchAndCompositeBroll } from "./broll";
+import { pickMusicTrack, mixBgMusic } from "./bgMusic";
 import { EditFeatures, EditPlan, GraphicStyleName } from "./types";
 
 const MAX_GAP = parseFloat(process.env.MAX_WORD_GAP ?? "0.2");
@@ -21,6 +23,8 @@ const DEFAULT_FEATURES: EditFeatures = {
   graphics: true,
   audioEngineer: true,
   sfx: true,
+  broll: true,
+  bgMusic: true,
 };
 
 function ask(question: string): Promise<string> {
@@ -43,8 +47,8 @@ export async function runPipeline(
   const { transcript: rawTranscript, duration } = await transcribeVideo(videoPath);
   const transcript = shortenWordGaps(rawTranscript, MAX_GAP);
 
-  onProgress("Planning edits with Claude (color grade, zooms, cuts, graphics)...");
-  const { graphics, colorGrade, zoomCues, cutPoints } = await planGraphics(
+  onProgress("Planning edits with Claude (color grade, zooms, cuts, graphics, b-roll, music)...");
+  const { graphics, colorGrade, zoomCues, cutPoints, brollCues, musicMood } = await planGraphics(
     transcript, videoTitle, features
   );
 
@@ -52,7 +56,7 @@ export async function runPipeline(
   const planVideoPath = remotionVideoUrl ?? videoPath;
   const plan = buildEditPlan(
     planVideoPath, transcript, graphics, colorGrade, zoomCues, cutPoints, duration,
-    30, style, features
+    30, style, features, brollCues, musicMood
   );
 
   const planCachePath = path.join(outputDir, `${videoTitle}.plan.json`);
@@ -72,6 +76,21 @@ export async function runPipeline(
     const sfxDir = path.resolve("./sfx");
     ensureSfxFiles(sfxDir);
     await mixSfx(outputPath, plan.graphics, plan.cutPoints ?? [], sfxDir, 0.18, onProgress);
+  }
+
+  if (features.broll !== false && plan.brollCues && plan.brollCues.length > 0) {
+    onProgress("Fetching and compositing b-roll...");
+    const brollCacheDir = path.resolve("./broll-cache");
+    await fetchAndCompositeBroll(outputPath, plan.brollCues, plan.cutPoints ?? [], brollCacheDir, onProgress);
+  }
+
+  if (features.bgMusic !== false && plan.musicMood) {
+    const musicDir = path.resolve("./music");
+    const trackPath = pickMusicTrack(plan.musicMood, musicDir);
+    if (trackPath) {
+      onProgress("Mixing background music...");
+      await mixBgMusic(outputPath, trackPath, -18, onProgress);
+    }
   }
 
   return outputPath;

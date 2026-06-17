@@ -19,6 +19,8 @@ const DEFAULT_FEATURES: EditFeatures = {
   graphics: true,
   audioEngineer: true,
   sfx: true,
+  broll: true,
+  bgMusic: true,
 };
 
 const app = express();

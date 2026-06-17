@@ -6,6 +6,8 @@ import {
   ColorGradeSettings,
   ZoomCue,
   CutPoint,
+  BrollCue,
+  MusicMood,
   EditFeatures,
   GraphicStyleName,
 } from "./types";
@@ -43,18 +45,26 @@ const CutPointSchema = z.object({
   reason: z.string().optional().default("pause"),
 });
 
+const BrollCueSchema = z.object({
+  startTime: z.number(),
+  endTime: z.number(),
+  query: z.string(),
+});
+
 const EditPlanSchema = z.object({
   graphics: z.array(GraphicCueSchema),
   colorGrade: ColorGradeSchema,
   zoomCues: z.array(ZoomCueSchema),
   cutPoints: z.array(CutPointSchema),
+  brollCues: z.array(BrollCueSchema).optional().default([]),
+  musicMood: z.enum(["devotional", "energetic", "reflective", "uplifting", "peaceful", "dramatic"]).optional(),
 });
 
 const SYSTEM_PROMPT = `You are a professional motion graphics director and video editor for long-form YouTube content. Your role is not to annotate or caption the video — it is to translate the meaning of what is being said into powerful, purposeful visual overlays.
 
 Think like a creative director. Every graphic you plan must serve the idea, not just echo the words.
 
-Your output must be valid JSON with exactly four keys: graphics, colorGrade, zoomCues, cutPoints.
+Your output must be valid JSON with exactly six keys: graphics, colorGrade, zoomCues, cutPoints, brollCues, musicMood.
 
 == CREATIVE DIRECTION PRINCIPLES ==
 Do not recreate the script on screen. Find the deeper visual idea behind each moment.
@@ -150,6 +160,28 @@ Rules:
 - Sort cutPoints by startTime ascending
 - When in doubt, DO NOT cut
 
+== B-ROLL CUES (all times in original video seconds) ==
+Plan 2–4 b-roll windows where cutaway footage would strengthen the message. Leave brollCues as [] if there are no suitable moments.
+
+Rules:
+- Choose moments when the speaker references something visually concrete (a place, action, object, or concept that can be shown)
+- Duration 5–8 seconds each — enough to establish the visual
+- Write a concise, concrete Pexels search query (2–5 words, English, visual nouns/verbs only)
+  Good: "cross sunrise silhouette", "open Bible hands light", "people praying together", "church congregation worship"
+  Bad: "faith", "salvation", "the meaning of grace"
+- Do NOT plan b-roll during title_card, chapter_card, or text_overlay windows
+- Leave at least 15 seconds between b-roll windows
+- Maximum 1 b-roll window per 2 minutes of video content
+
+== MUSIC MOOD ==
+Return a single musicMood string that best fits the overall tone of this video:
+- devotional  — prayer, scripture study, quiet worship, personal faith
+- reflective  — teaching, explanation, theological reflection
+- uplifting   — encouragement, hope, victory, celebration
+- energetic   — fast-paced, high-energy, call to action
+- peaceful    — meditation, rest, comfort, gentle reassurance
+- dramatic    — warning, conviction, high-stakes spiritual truth
+
 Return ONLY valid JSON, no markdown, no explanation.`;
 
 const DEFAULT_FEATURES: EditFeatures = {
@@ -159,6 +191,8 @@ const DEFAULT_FEATURES: EditFeatures = {
   graphics: true,
   audioEngineer: true,
   sfx: true,
+  broll: true,
+  bgMusic: true,
 };
 
 const NATURAL_COLOR_GRADE: ColorGradeSettings = {
@@ -173,7 +207,7 @@ export async function planGraphics(
   transcript: Transcript,
   videoTitle: string = "Video",
   features: EditFeatures = DEFAULT_FEATURES
-): Promise<{ graphics: GraphicCue[]; colorGrade: ColorGradeSettings; zoomCues: ZoomCue[]; cutPoints: CutPoint[] }> {
+): Promise<{ graphics: GraphicCue[]; colorGrade: ColorGradeSettings; zoomCues: ZoomCue[]; cutPoints: CutPoint[]; brollCues: BrollCue[]; musicMood: MusicMood | undefined }> {
   const transcriptText = transcript.segments
     .map((s) => {
       const words = s.words.map((w) => `[${w.start.toFixed(2)}s]${w.word}`).join(" ");
@@ -194,7 +228,7 @@ Video duration: ${transcript.duration.toFixed(1)} seconds
 Transcript with word-level timestamps:
 ${transcriptText}
 
-Plan the full edit. Return JSON with "graphics", "colorGrade", "zoomCues", and "cutPoints".`,
+Plan the full edit. Return JSON with "graphics", "colorGrade", "zoomCues", "cutPoints", "brollCues", and "musicMood".`,
       },
     ],
   });
@@ -223,6 +257,8 @@ Plan the full edit. Return JSON with "graphics", "colorGrade", "zoomCues", and "
     cutPoints: features.jumpCuts
       ? (parsed.cutPoints as CutPoint[]).sort((a, b) => a.startTime - b.startTime)
       : [],
+    brollCues: features.broll ? (parsed.brollCues as BrollCue[]) : [],
+    musicMood: parsed.musicMood as MusicMood | undefined,
   };
 }
 
@@ -236,7 +272,9 @@ export function buildEditPlan(
   duration: number,
   fps: number = 30,
   style: GraphicStyleName = "bold",
-  features: EditFeatures = DEFAULT_FEATURES
+  features: EditFeatures = DEFAULT_FEATURES,
+  brollCues: BrollCue[] = [],
+  musicMood?: MusicMood
 ): EditPlan {
   return {
     videoPath,
@@ -245,6 +283,8 @@ export function buildEditPlan(
     colorGrade,
     zoomCues,
     cutPoints,
+    brollCues,
+    musicMood,
     fps,
     durationInSeconds: duration,
     style,
