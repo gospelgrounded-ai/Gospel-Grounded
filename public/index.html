@@ -442,6 +442,14 @@
         </div>
         <div class="toggle-check">✓</div>
       </div>
+      <div class="feature-toggle on" data-feature="audioEngineer">
+        <span class="toggle-icon">🎙</span>
+        <div class="toggle-label">
+          <strong>Sound Engineering</strong>
+          <span>Denoise, compress, −14 LUFS</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -477,6 +485,9 @@
       <div class="stage" id="stage-rendering">
         <div class="stage-dot"></div> Rendering video
       </div>
+      <div class="stage" id="stage-engineering">
+        <div class="stage-dot"></div> Engineering audio
+      </div>
     </div>
     <div id="status-msg"></div>
   </div>
@@ -499,7 +510,7 @@
     };
 
     let selectedStyle = 'bold';
-    const features = { colorGrade: true, zooms: true, jumpCuts: true, graphics: true };
+    const features = { colorGrade: true, zooms: true, jumpCuts: true, graphics: true, audioEngineer: true };
 
     /* ── Style picker ────────────────────────────── */
     document.querySelectorAll('.style-card').forEach(card => {
@@ -653,10 +664,10 @@
     }
 
     function setStage(status) {
-      ['transcribing', 'planning', 'rendering'].forEach(s => {
+      ['transcribing', 'planning', 'rendering', 'engineering'].forEach(s => {
         document.getElementById('stage-' + s).className = 'stage';
       });
-      const order = ['transcribing', 'planning', 'rendering'];
+      const order = ['transcribing', 'planning', 'rendering', 'engineering'];
       const idx = order.indexOf(status);
       order.forEach((s, i) => {
         const el = document.getElementById('stage-' + s);

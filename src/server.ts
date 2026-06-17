@@ -17,6 +17,7 @@ const DEFAULT_FEATURES: EditFeatures = {
   zooms: true,
   jumpCuts: true,
   graphics: true,
+  audioEngineer: true,
 };
 
 const app = express();
@@ -57,6 +58,7 @@ async function processJob(
           "Extracting audio": "transcribing",
           "Planning edits": "planning",
           "Rendering": "rendering",
+          "Engineering audio": "engineering",
         };
         const matched = Object.entries(statusMap).find(([k]) => msg.startsWith(k));
         updateJob(jobId, {

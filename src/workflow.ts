@@ -7,6 +7,7 @@ config();
 import { transcribeVideo, shortenWordGaps } from "./transcribe";
 import { planGraphics, buildEditPlan } from "./compose";
 import { renderVideo } from "./render";
+import { engineerAudio } from "./audioEngineer";
 import { EditFeatures, EditPlan, GraphicStyleName } from "./types";
 
 const MAX_GAP = parseFloat(process.env.MAX_WORD_GAP ?? "0.2");
@@ -17,6 +18,7 @@ const DEFAULT_FEATURES: EditFeatures = {
   zooms: true,
   jumpCuts: true,
   graphics: true,
+  audioEngineer: true,
 };
 
 function ask(question: string): Promise<string> {
@@ -57,6 +59,11 @@ export async function runPipeline(
   onProgress("Rendering final video with Remotion...");
   const outputPath = path.join(outputDir, `${videoTitle}_edited.mp4`);
   await renderVideo(plan, outputPath, onProgress);
+
+  if (features.audioEngineer !== false) {
+    onProgress("Engineering audio (denoise, compress, normalize)...");
+    await engineerAudio(outputPath, onProgress);
+  }
 
   return outputPath;
 }

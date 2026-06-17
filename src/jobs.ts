@@ -6,6 +6,7 @@ export type JobStatus =
   | "transcribing"
   | "planning"
   | "rendering"
+  | "engineering"
   | "done"
   | "failed";
 

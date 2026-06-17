@@ -114,6 +114,7 @@ export interface EditFeatures {
   zooms: boolean;
   jumpCuts: boolean;
   graphics: boolean;
+  audioEngineer: boolean;
 }
 
 export interface EditPlan {
