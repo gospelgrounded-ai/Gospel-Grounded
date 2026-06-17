@@ -1,8 +1,12 @@
 import React from "react";
 import { Composition, getInputProps, registerRoot } from "remotion";
+import { loadFont as loadPoppins } from "@remotion/google-fonts/Poppins";
 import { VideoComposition } from "./VideoComposition";
 import { EditPlan } from "./types";
 import { computeEditedDuration } from "./editUtils";
+
+// Load Poppins for bold/premium titles across all styles
+loadPoppins();
 
 const RemotionRoot: React.FC = () => {
   const inputProps = getInputProps() as { plan?: EditPlan };

@@ -9,8 +9,8 @@ export const STYLES: Record<GraphicStyleName, GraphicStyle> = {
     overlayBg: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
     text: "#ffffff",
     subtext: "#aaaacc",
-    font: "'Segoe UI', sans-serif",
-    titleFont: "'Segoe UI', sans-serif",
+    font: "Poppins, 'Segoe UI', sans-serif",
+    titleFont: "Poppins, 'Segoe UI', sans-serif",
   },
   gospel: {
     accent: "#d4af37",

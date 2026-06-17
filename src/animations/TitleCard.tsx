@@ -48,9 +48,9 @@ export const TitleCard: React.FC<Props> = ({ data, graphicStyle }) => {
             fontSize: 80,
             fontFamily: font,
             fontWeight: 800,
-            lineHeight: 1.1,
+            lineHeight: 1.05,
             textShadow: "0 4px 24px rgba(0,0,0,0.75)",
-            letterSpacing: "-2px",
+            letterSpacing: "-3px",
             maxWidth: 1200,
           }}
         >
