@@ -72,6 +72,45 @@ function downloadFile(url: string, destPath: string): Promise<void> {
   });
 }
 
+/**
+ * Return a zoompan filter expression for a Ken Burns effect.
+ * Three styles are cycled per clip index so consecutive clips vary.
+ *
+ *  0 — slow zoom in  (center)
+ *  1 — slow zoom out (center)
+ *  2 — slow pan left→right with gentle zoom
+ *
+ * zoompan operates on the scaled 1920×1080 frame.  The source is
+ * pre-scaled 20% larger (2304×1296) so the zoom never hits the edge.
+ */
+function kenBurnsFilter(clipIndex: number, frames: number): string {
+  const style = clipIndex % 3;
+  // Zoom from 1.0 → 1.08 (or back) over the clip duration
+  const increment = (0.08 / Math.max(frames, 1)).toFixed(7);
+
+  switch (style) {
+    case 0: // zoom in, center
+      return (
+        `z='min(zoom+${increment},1.08)':` +
+        `x='iw/2-(iw/zoom/2)':` +
+        `y='ih/2-(ih/zoom/2)'`
+      );
+    case 1: // zoom out, center
+      return (
+        `z='max(1.08-${increment}*in,1.0)':` +
+        `x='iw/2-(iw/zoom/2)':` +
+        `y='ih/2-(ih/zoom/2)'`
+      );
+    case 2: // pan left → right, fixed gentle zoom
+    default:
+      return (
+        `z='1.04':` +
+        `x='(iw-iw/zoom)*in/d':` +
+        `y='ih/2-(ih/zoom/2)'`
+      );
+  }
+}
+
 function runFfmpeg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn("ffmpeg", ["-y", ...args], { stdio: "pipe" });
@@ -154,10 +193,17 @@ export async function fetchAndCompositeBroll(
 
   readyCues.forEach((cue, i) => {
     const inputIdx = i + 1;
+    // Scale 20% larger than output so zoompan never hits the source edge,
+    // then cover-crop to exact size, then apply Ken Burns animation.
+    const frames = Math.max(Math.round(cue.duration * 30), 1);
+    const kb = kenBurnsFilter(i, frames);
     filterParts.push(
-      `[${inputIdx}:v]trim=duration=${cue.duration.toFixed(3)},setpts=PTS-STARTPTS,` +
-      `scale=1920:1080:force_original_aspect_ratio=decrease,` +
-      `pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[broll${i}]`
+      `[${inputIdx}:v]` +
+      `trim=duration=${cue.duration.toFixed(3)},setpts=PTS-STARTPTS,` +
+      `scale=2304:1296:force_original_aspect_ratio=increase,crop=2304:1296,` +
+      `fps=30,` +
+      `zoompan=${kb}:d=${frames}:s=1920x1080:fps=30,` +
+      `setsar=1[broll${i}]`
     );
     filterParts.push(
       `${currentVideo}[broll${i}]overlay=enable='between(t,${cue.editedStart.toFixed(3)},${cue.editedEnd.toFixed(3)})'[vout${i}]`
