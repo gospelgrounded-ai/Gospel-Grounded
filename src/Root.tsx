@@ -1,20 +1,27 @@
 import React from "react";
-import { Composition, getInputProps } from "remotion";
+import { Composition, getInputProps, registerRoot } from "remotion";
+import { loadFont as loadPoppins } from "@remotion/google-fonts/Poppins";
 import { VideoComposition } from "./VideoComposition";
 import { EditPlan } from "./types";
+import { computeEditedDuration } from "./editUtils";
 
-export const RemotionRoot: React.FC = () => {
+// Load Poppins for bold/premium titles across all styles
+loadPoppins();
+
+const RemotionRoot: React.FC = () => {
   const inputProps = getInputProps() as { plan?: EditPlan };
   const plan = inputProps?.plan;
 
   const fps = plan?.fps ?? 30;
-  const durationInSeconds = plan?.durationInSeconds ?? 60;
+  const editedDuration = plan
+    ? computeEditedDuration(plan.durationInSeconds, plan.cutPoints ?? [])
+    : 60;
 
   return (
     <Composition
       id="VideoComposition"
-      component={VideoComposition}
-      durationInFrames={Math.ceil(durationInSeconds * fps)}
+      component={VideoComposition as unknown as React.ComponentType<Record<string, unknown>>}
+      durationInFrames={Math.ceil(editedDuration * fps)}
       fps={fps}
       width={1920}
       height={1080}
@@ -22,3 +29,5 @@ export const RemotionRoot: React.FC = () => {
     />
   );
 };
+
+registerRoot(RemotionRoot);

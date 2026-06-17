@@ -22,7 +22,8 @@ export type GraphicType =
   | "lower_third"
   | "bullet_list"
   | "comparison_chart"
-  | "title_card";
+  | "title_card"
+  | "chapter_card";
 
 export interface GraphicCue {
   type: GraphicType;
@@ -57,10 +58,73 @@ export interface TitleCardData {
   subtitle?: string;
 }
 
+export interface ChapterCardData {
+  label?: string;  // e.g. "PART ONE", "THE PROBLEM" — small text above
+  title: string;   // e.g. "THE DESTRUCTION" — large bold text
+}
+
+export type ColorGradePreset =
+  | "cinematic"
+  | "warm"
+  | "cool"
+  | "punchy"
+  | "natural"
+  | "studio_warm";
+
+export interface ColorGradeSettings {
+  preset: ColorGradePreset;
+  brightness: number;
+  contrast: number;
+  saturate: number;
+  sepia: number;
+}
+
+export interface ZoomCue {
+  startTime: number;
+  endTime: number;
+  scale: number;
+  originX: number;
+  originY: number;
+}
+
+export interface CutPoint {
+  startTime: number;
+  endTime: number;
+  reason: string;
+}
+
+export type GraphicStyleName = "bold" | "gospel" | "modern" | "documentary" | "minimal" | "liquid_glass";
+
+export interface GraphicStyle {
+  accent: string;
+  accentGradient: string;
+  accentRight: string;
+  panelBg: string;
+  overlayBg: string;
+  text: string;
+  subtext: string;
+  font: string;
+  titleFont: string;
+  panelFilter?: string;   // backdrop-filter value for frosted glass styles
+  borderColor?: string;   // panel border (glass highlight edge)
+}
+
+export interface EditFeatures {
+  colorGrade: boolean;
+  zooms: boolean;
+  jumpCuts: boolean;
+  graphics: boolean;
+}
+
 export interface EditPlan {
   videoPath: string;
   transcript: Transcript;
   graphics: GraphicCue[];
+  colorGrade: ColorGradeSettings;
+  zoomCues: ZoomCue[];
+  cutPoints: CutPoint[];
   fps: number;
   durationInSeconds: number;
+  style?: GraphicStyleName;
+  features?: EditFeatures;
 }
