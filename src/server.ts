@@ -84,9 +84,14 @@ async function processJob(
       outputPath,
       srtPath: srtExists ? srtPath : undefined,
     });
+
+    // Delete the raw upload to free disk space — the edited output is what matters
+    try { fs.unlinkSync(fsPath); } catch { /* ignore if already gone */ }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     updateJob(jobId, { status: "failed", error: message, progress: `Failed: ${message}` });
+    // Clean up failed upload too
+    try { fs.unlinkSync(fsPath); } catch { /* ignore */ }
   }
 }
 
