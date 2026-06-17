@@ -115,6 +115,7 @@ export interface EditFeatures {
   jumpCuts: boolean;
   graphics: boolean;
   audioEngineer: boolean;
+  sfx: boolean;
 }
 
 export interface EditPlan {

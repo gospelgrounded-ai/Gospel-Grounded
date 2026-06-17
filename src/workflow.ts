@@ -8,6 +8,7 @@ import { transcribeVideo, shortenWordGaps } from "./transcribe";
 import { planGraphics, buildEditPlan } from "./compose";
 import { renderVideo } from "./render";
 import { engineerAudio } from "./audioEngineer";
+import { ensureSfxFiles, mixSfx } from "./sfx";
 import { EditFeatures, EditPlan, GraphicStyleName } from "./types";
 
 const MAX_GAP = parseFloat(process.env.MAX_WORD_GAP ?? "0.2");
@@ -19,6 +20,7 @@ const DEFAULT_FEATURES: EditFeatures = {
   jumpCuts: true,
   graphics: true,
   audioEngineer: true,
+  sfx: true,
 };
 
 function ask(question: string): Promise<string> {
@@ -63,6 +65,13 @@ export async function runPipeline(
   if (features.audioEngineer !== false) {
     onProgress("Engineering audio (denoise, compress, normalize)...");
     await engineerAudio(outputPath, onProgress);
+  }
+
+  if (features.sfx !== false && plan.graphics.length > 0) {
+    onProgress("Mixing sound effects...");
+    const sfxDir = path.resolve("./sfx");
+    ensureSfxFiles(sfxDir);
+    await mixSfx(outputPath, plan.graphics, plan.cutPoints ?? [], sfxDir, 0.18, onProgress);
   }
 
   return outputPath;

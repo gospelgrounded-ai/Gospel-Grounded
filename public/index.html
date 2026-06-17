@@ -450,6 +450,14 @@
         </div>
         <div class="toggle-check">✓</div>
       </div>
+      <div class="feature-toggle on" data-feature="sfx">
+        <span class="toggle-icon">🔊</span>
+        <div class="toggle-label">
+          <strong>Sound Effects</strong>
+          <span>Whoosh, pop, tick per graphic</span>
+        </div>
+        <div class="toggle-check">✓</div>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -510,7 +518,7 @@
     };
 
     let selectedStyle = 'bold';
-    const features = { colorGrade: true, zooms: true, jumpCuts: true, graphics: true, audioEngineer: true };
+    const features = { colorGrade: true, zooms: true, jumpCuts: true, graphics: true, audioEngineer: true, sfx: true };
 
     /* ── Style picker ────────────────────────────── */
     document.querySelectorAll('.style-card').forEach(card => {

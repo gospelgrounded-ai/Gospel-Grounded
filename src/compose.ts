@@ -158,6 +158,7 @@ const DEFAULT_FEATURES: EditFeatures = {
   jumpCuts: true,
   graphics: true,
   audioEngineer: true,
+  sfx: true,
 };
 
 const NATURAL_COLOR_GRADE: ColorGradeSettings = {
