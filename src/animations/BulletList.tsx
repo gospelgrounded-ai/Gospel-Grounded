@@ -11,10 +11,13 @@ export const BulletList: React.FC<Props> = ({ data, graphicStyle }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  const accent    = graphicStyle?.accent ?? "#e94560";
-  const panelBg   = graphicStyle?.panelBg ?? "rgba(8, 8, 20, 0.88)";
-  const font      = graphicStyle?.font ?? "'Segoe UI', sans-serif";
-  const textColor = graphicStyle?.text ?? "#ffffff";
+  const accent         = graphicStyle?.accent ?? "#e94560";
+  const panelBg        = graphicStyle?.panelBg ?? "rgba(8, 8, 20, 0.88)";
+  const font           = graphicStyle?.font ?? "'Segoe UI', sans-serif";
+  const textColor      = graphicStyle?.text ?? "#ffffff";
+  const backdropFilter = graphicStyle?.panelFilter;
+  const glassBorder    = graphicStyle?.borderColor ? `1px solid ${graphicStyle.borderColor}` : undefined;
+  const glassShadow    = backdropFilter ? "0 8px 32px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.55)" : undefined;
 
   const containerEnter = spring({ frame, fps, config: { damping: 16, stiffness: 130 } });
   const containerExit = spring({
@@ -34,6 +37,10 @@ export const BulletList: React.FC<Props> = ({ data, graphicStyle }) => {
       <div
         style={{
           background: panelBg,
+          backdropFilter: backdropFilter,
+          WebkitBackdropFilter: backdropFilter,
+          border: glassBorder,
+          boxShadow: glassShadow,
           borderRadius: 16,
           padding: "32px 48px",
           maxWidth: "55%",

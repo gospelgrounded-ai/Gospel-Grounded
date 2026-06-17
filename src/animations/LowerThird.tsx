@@ -17,6 +17,9 @@ export const LowerThird: React.FC<Props> = ({ data, graphicStyle }) => {
   const font           = graphicStyle?.font ?? "'Segoe UI', sans-serif";
   const textColor      = graphicStyle?.text ?? "#ffffff";
   const subtextColor   = graphicStyle?.subtext ?? "#aaaacc";
+  const backdropFilter = graphicStyle?.panelFilter;
+  const glassBorder    = graphicStyle?.borderColor ? `1px solid ${graphicStyle.borderColor}` : undefined;
+  const glassShadow    = backdropFilter ? "0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.55)" : undefined;
 
   const enter = spring({ frame, fps, config: { damping: 18, stiffness: 150 } });
   const exit = spring({
@@ -54,9 +57,13 @@ export const LowerThird: React.FC<Props> = ({ data, graphicStyle }) => {
         <div
           style={{
             background: panelBg,
+            backdropFilter: backdropFilter,
+            WebkitBackdropFilter: backdropFilter,
             padding: "14px 28px",
-            borderRadius: "0 8px 8px 0",
-            borderLeft: `4px solid ${accent}`,
+            borderRadius: backdropFilter ? 16 : "0 8px 8px 0",
+            border: glassBorder,
+            borderLeft: glassBorder ? undefined : `4px solid ${accent}`,
+            boxShadow: glassShadow,
           }}
         >
           <div

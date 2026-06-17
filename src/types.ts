@@ -93,7 +93,7 @@ export interface CutPoint {
   reason: string;
 }
 
-export type GraphicStyleName = "bold" | "gospel" | "modern" | "documentary" | "minimal";
+export type GraphicStyleName = "bold" | "gospel" | "modern" | "documentary" | "minimal" | "liquid_glass";
 
 export interface GraphicStyle {
   accent: string;
@@ -105,6 +105,8 @@ export interface GraphicStyle {
   subtext: string;
   font: string;
   titleFont: string;
+  panelFilter?: string;   // backdrop-filter value for frosted glass styles
+  borderColor?: string;   // panel border (glass highlight edge)
 }
 
 export interface EditFeatures {

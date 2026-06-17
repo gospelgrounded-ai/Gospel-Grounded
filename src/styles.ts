@@ -56,14 +56,28 @@ export const STYLES: Record<GraphicStyleName, GraphicStyle> = {
     font: "'Helvetica Neue', Arial, sans-serif",
     titleFont: "'Helvetica Neue', Arial, sans-serif",
   },
+  liquid_glass: {
+    accent: "rgba(255, 255, 255, 0.95)",
+    accentGradient: "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(180,220,255,0.85) 100%)",
+    accentRight: "rgba(160, 210, 255, 0.9)",
+    panelBg: "rgba(255, 255, 255, 0.10)",
+    overlayBg: "rgba(255, 255, 255, 0.07)",
+    text: "#ffffff",
+    subtext: "rgba(255,255,255,0.78)",
+    font: "-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif",
+    titleFont: "-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif",
+    panelFilter: "blur(24px) saturate(1.6)",
+    borderColor: "rgba(255, 255, 255, 0.38)",
+  },
 };
 
 export const STYLE_META: Record<GraphicStyleName, { label: string; description: string; swatch: string }> = {
-  bold:        { label: "Bold",        description: "High-energy red, modern sans-serif",        swatch: "#e94560" },
-  gospel:      { label: "Gospel",      description: "Gold accents, warm serif, reverent",         swatch: "#d4af37" },
-  modern:      { label: "Modern",      description: "Cyan-purple gradient, sleek YouTube look",   swatch: "#00d4ff" },
-  documentary: { label: "Documentary", description: "Amber accents, warm serif, journalistic",    swatch: "#c9834a" },
-  minimal:     { label: "Minimal",     description: "Clean white, transparent, no distraction",   swatch: "#ffffff" },
+  bold:         { label: "Bold",         description: "High-energy red, modern sans-serif",       swatch: "#e94560" },
+  gospel:       { label: "Gospel",       description: "Gold accents, warm serif, reverent",        swatch: "#d4af37" },
+  modern:       { label: "Modern",       description: "Cyan-purple gradient, sleek YouTube look",  swatch: "#00d4ff" },
+  documentary:  { label: "Documentary",  description: "Amber accents, warm serif, journalistic",   swatch: "#c9834a" },
+  minimal:      { label: "Minimal",      description: "Clean white, transparent, no distraction",  swatch: "#ffffff" },
+  liquid_glass: { label: "Liquid Glass", description: "Frosted glass blur, Apple-style panels",   swatch: "glass"   },
 };
 
 export function getStyle(name?: GraphicStyleName): GraphicStyle {

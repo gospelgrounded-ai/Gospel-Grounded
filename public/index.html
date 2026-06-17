@@ -55,7 +55,7 @@
     /* ── Style Picker ────────────────────────────── */
     .style-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       margin-bottom: 4px;
     }
@@ -398,6 +398,10 @@
         <div class="style-swatch" style="background:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.3);"></div>
         <span class="style-name">Minimal</span>
       </div>
+      <div class="style-card" data-style="liquid_glass" style="--swatch:#aad4ff">
+        <div class="style-swatch" style="background:linear-gradient(135deg,rgba(255,255,255,0.7),rgba(160,210,255,0.6));border-color:rgba(255,255,255,0.5);backdrop-filter:blur(8px);"></div>
+        <span class="style-name">Glass</span>
+      </div>
     </div>
     <p class="style-hint" id="style-hint">High-energy, bold red accents, modern sans-serif</p>
 
@@ -486,11 +490,12 @@
   <script>
     /* ── Style descriptions ──────────────────────── */
     const STYLE_HINTS = {
-      bold:        'High-energy, bold red accents, modern sans-serif',
-      gospel:      'Warm gold accents, reverent serif font, church aesthetic',
-      modern:      'Cyan-purple gradient, sleek YouTube creator look',
-      documentary: 'Amber accents, warm serif, journalistic gravitas',
-      minimal:     'Clean white, transparent panels, zero distraction',
+      bold:         'High-energy, bold red accents, modern sans-serif',
+      gospel:       'Warm gold accents, reverent serif font, church aesthetic',
+      modern:       'Cyan-purple gradient, sleek YouTube creator look',
+      documentary:  'Amber accents, warm serif, journalistic gravitas',
+      minimal:      'Clean white, transparent panels, zero distraction',
+      liquid_glass: 'Frosted glass blur, Apple Liquid Glass aesthetic — panels blur the video behind them',
     };
 
     let selectedStyle = 'bold';

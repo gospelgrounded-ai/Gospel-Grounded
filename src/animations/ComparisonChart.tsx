@@ -11,12 +11,15 @@ export const ComparisonChart: React.FC<Props> = ({ data, graphicStyle }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  const accent       = graphicStyle?.accent ?? "#e94560";
-  const accentRight  = graphicStyle?.accentRight ?? "#4ecdc4";
-  const panelBg      = graphicStyle?.panelBg ?? "rgba(8, 8, 20, 0.92)";
-  const font         = graphicStyle?.font ?? "'Segoe UI', sans-serif";
-  const textColor    = graphicStyle?.text ?? "#ffffff";
-  const subtextColor = graphicStyle?.subtext ?? "#aaaacc";
+  const accent         = graphicStyle?.accent ?? "#e94560";
+  const accentRight    = graphicStyle?.accentRight ?? "#4ecdc4";
+  const panelBg        = graphicStyle?.panelBg ?? "rgba(8, 8, 20, 0.92)";
+  const font           = graphicStyle?.font ?? "'Segoe UI', sans-serif";
+  const textColor      = graphicStyle?.text ?? "#ffffff";
+  const subtextColor   = graphicStyle?.subtext ?? "#aaaacc";
+  const backdropFilter = graphicStyle?.panelFilter;
+  const glassBorder    = graphicStyle?.borderColor ? `1px solid ${graphicStyle.borderColor}` : undefined;
+  const glassShadow    = backdropFilter ? "0 8px 32px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.55)" : undefined;
 
   const enter = spring({ frame, fps, config: { damping: 14, stiffness: 110 } });
   const exit = spring({
@@ -35,6 +38,10 @@ export const ComparisonChart: React.FC<Props> = ({ data, graphicStyle }) => {
           opacity,
           transform: `scale(${scale})`,
           background: panelBg,
+          backdropFilter: backdropFilter,
+          WebkitBackdropFilter: backdropFilter,
+          border: glassBorder,
+          boxShadow: glassShadow,
           borderRadius: 20,
           padding: "40px 60px",
           minWidth: 700,
