@@ -74,7 +74,16 @@ async function processJob(
       style
     );
 
-    updateJob(jobId, { status: "done", progress: "Done! Your video is ready to download.", outputPath });
+    // Detect SRT file written alongside the video
+    const srtPath = outputPath.replace(/\.[^.]+$/, ".srt");
+    const srtExists = fs.existsSync(srtPath);
+
+    updateJob(jobId, {
+      status: "done",
+      progress: "Done! Your video is ready to download.",
+      outputPath,
+      srtPath: srtExists ? srtPath : undefined,
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     updateJob(jobId, { status: "failed", error: message, progress: `Failed: ${message}` });
@@ -162,6 +171,16 @@ app.get("/download/:jobId", (req, res) => {
     return;
   }
   res.download(job.outputPath);
+});
+
+// Download SRT captions
+app.get("/download/:jobId/srt", (req, res) => {
+  const job = getJob(req.params.jobId);
+  if (!job?.srtPath || !fs.existsSync(job.srtPath)) {
+    res.status(404).send("Captions not ready or file missing");
+    return;
+  }
+  res.download(job.srtPath);
 });
 
 // List all jobs (most recent first)

@@ -11,6 +11,7 @@ import { engineerAudio } from "./audioEngineer";
 import { ensureSfxFiles, mixSfx } from "./sfx";
 import { fetchAndCompositeBroll } from "./broll";
 import { pickMusicTrack, mixBgMusic } from "./bgMusic";
+import { saveSrt } from "./srt";
 import { EditFeatures, EditPlan, GraphicStyleName } from "./types";
 
 const MAX_GAP = parseFloat(process.env.MAX_WORD_GAP ?? "0.2");
@@ -65,6 +66,10 @@ export async function runPipeline(
   onProgress("Rendering final video with Remotion...");
   const outputPath = path.join(outputDir, `${videoTitle}_edited.mp4`);
   await renderVideo(plan, outputPath, onProgress);
+
+  // Always generate SRT — upload to YouTube as closed captions
+  const srtPath = saveSrt(transcript, plan.cutPoints ?? [], outputPath);
+  onProgress(`Captions saved: ${path.basename(srtPath)}`);
 
   if (features.audioEngineer !== false) {
     onProgress("Engineering audio (denoise, compress, normalize)...");

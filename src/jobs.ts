@@ -14,6 +14,7 @@ export interface Job {
   id: string;
   videoPath: string;
   outputPath?: string;
+  srtPath?: string;
   status: JobStatus;
   progress: string;
   error?: string;
