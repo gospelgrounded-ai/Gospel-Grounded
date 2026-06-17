@@ -86,7 +86,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:#888;text-transform:u
 .drop .fname{color:#e94560;font-weight:600;margin-top:8px;font-size:.9rem;word-break:break-all}
 input[type=file]{display:none}
 .opts{display:flex;gap:10px;margin-bottom:10px}
-.opt{flex:1;padding:12px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4}
+.opt{flex:1;padding:12px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;touch-action:manipulation;-webkit-appearance:none;color:#e8e8ee}
 .opt small{display:block;color:#555;font-size:.72rem;margin-top:3px}
 .opt.on{border-color:#e94560;background:rgba(233,69,96,.1);color:#e94560}
 .opt.on small{color:#c43a54}
@@ -101,11 +101,11 @@ select:focus{outline:none;border-color:#e94560}
 select option{background:#111}
 .lut-loading{color:#666;font-size:.82rem;padding:6px 0}
 .row{display:flex;gap:10px;margin-bottom:24px}
-.qopt{flex:1;padding:11px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4}
+.qopt{flex:1;padding:11px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;touch-action:manipulation;-webkit-appearance:none;color:#e8e8ee}
 .qopt small{display:block;color:#555;font-size:.72rem;margin-top:3px}
 .qopt.on{border-color:#e94560;background:rgba(233,69,96,.1);color:#e94560}
 .qopt.on small{color:#c43a54}
-.btn{width:100%;padding:15px;background:#e94560;color:#fff;border:none;border-radius:11px;font-size:.98rem;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.01em}
+.btn{width:100%;padding:15px;background:#e94560;color:#fff;border:none;border-radius:11px;font-size:.98rem;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.01em;touch-action:manipulation}
 .btn:hover{background:#c43a54}
 .btn:disabled{background:#2a2a35;color:#555;cursor:not-allowed}
 #status{display:none}
@@ -135,9 +135,9 @@ select option{background:#111}
 
     <label>LUT Source</label>
     <div class="opts">
-      <div class="opt on" id="o-builtin" onclick="setLut('builtin')">Built-in LUT<small>choose LUT</small></div>
-      <div class="opt" id="o-upload" onclick="setLut('upload')">Upload .cube<small>bring your own</small></div>
-      <div class="opt" id="o-ffmpeg" onclick="setLut('ffmpeg')">FFmpeg Native<small>no file needed</small></div>
+      <button type="button" class="opt on" id="o-builtin" onclick="setLut('builtin')">Built-in LUT<small>choose LUT</small></button>
+      <button type="button" class="opt" id="o-upload" onclick="setLut('upload')">Upload .cube<small>bring your own</small></button>
+      <button type="button" class="opt" id="o-ffmpeg" onclick="setLut('ffmpeg')">FFmpeg Native<small>no file needed</small></button>
     </div>
     <div class="hint" id="hint"></div>
     <div class="builtin-area show" id="builtin-area">
@@ -154,9 +154,9 @@ select option{background:#111}
 
     <label>Output Quality</label>
     <div class="row">
-      <div class="qopt" id="q-high" onclick="setQ('high')">High<small>CRF 18</small></div>
-      <div class="qopt on" id="q-balanced" onclick="setQ('balanced')">Balanced<small>CRF 23</small></div>
-      <div class="qopt" id="q-fast" onclick="setQ('fast')">Fast<small>CRF 28</small></div>
+      <button type="button" class="qopt" id="q-high" onclick="setQ('high')">High<small>CRF 18</small></button>
+      <button type="button" class="qopt on" id="q-balanced" onclick="setQ('balanced')">Balanced<small>CRF 23</small></button>
+      <button type="button" class="qopt" id="q-fast" onclick="setQ('fast')">Fast<small>CRF 28</small></button>
     </div>
 
     <button type="submit" class="btn" id="sbtn">Convert Video</button>
@@ -174,8 +174,8 @@ select option{background:#111}
 </div>
 
 <script>
-const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB — stays under Railway's ingress limit
-let lutMode='builtin', quality='balanced', evtSrc=null;
+var CHUNK_SIZE = 8 * 1024 * 1024;
+var lutMode='builtin', quality='balanced', evtSrc=null;
 
 // Fetch and populate LUT dropdown (8-second timeout + retry)
 function loadLuts(){
@@ -370,9 +370,10 @@ function setProgress(pct,text){
   document.getElementById('stext').textContent=text;
 }
 function showErr(msg){
-  const e=document.getElementById('errmsg');
+  var e=document.getElementById('errmsg');
   e.textContent=msg;e.style.display='block';
   setProgress(0,'Error');
+}
 }
 </script>
 </body>
