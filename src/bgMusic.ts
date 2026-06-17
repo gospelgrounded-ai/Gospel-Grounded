@@ -69,9 +69,18 @@ function runFfmpeg(args: string[]): Promise<void> {
 }
 
 /**
- * Mix a background music track into videoPath in-place.
- * Music is looped if shorter than the video, faded in over 3 s and out over 3 s,
- * and mixed at volumeDb below the voiceover (default -18 dB).
+ * Mix a background music track into videoPath in-place with sidechain ducking.
+ *
+ * The speech audio acts as a sidechain trigger: whenever the speaker's voice
+ * is above the threshold the music is compressed (ducked) automatically, then
+ * released back up during pauses. This is the technique used in professional
+ * podcast and YouTube mixes.
+ *
+ * Ducking parameters:
+ *   threshold 0.02 (~−34 dBFS) — activates when voice is clearly present
+ *   ratio     6:1              — strong but not total suppression
+ *   attack    20 ms            — fast enough to catch word starts
+ *   release   600 ms           — gradual fade-back so it doesn't pump
  */
 export async function mixBgMusic(
   videoPath: string,
@@ -81,7 +90,7 @@ export async function mixBgMusic(
 ): Promise<void> {
   const log = (msg: string) => { console.log(msg); onProgress?.(msg); };
 
-  log(`Mixing background music: ${path.basename(trackPath)}`);
+  log(`Mixing background music with ducking: ${path.basename(trackPath)}`);
 
   const duration = await getVideoDuration(videoPath);
   const fadeOutStart = Math.max(0, duration - 3).toFixed(2);
@@ -89,11 +98,17 @@ export async function mixBgMusic(
 
   const tmpPath = videoPath.replace(/\.mp4$/i, "_bgmusic.mp4");
 
+  // [0:a] split → [speech] for final mix + [sc] as sidechain trigger
+  // [1:a] → volume + fades → [bgm_raw]
+  // sidechaincompress ducks [bgm_raw] whenever [sc] (speech) is loud → [bgm_ducked]
+  // final mix: [speech] + [bgm_ducked]
   const musicFilter =
+    `[0:a]asplit=2[speech][sc];` +
     `[1:a]volume=${volumeLinear},` +
     `afade=t=in:st=0:d=3,` +
-    `afade=t=out:st=${fadeOutStart}:d=3[bgm];` +
-    `[0:a][bgm]amix=inputs=2:duration=first:dropout_transition=2[outa]`;
+    `afade=t=out:st=${fadeOutStart}:d=3[bgm_raw];` +
+    `[bgm_raw][sc]sidechaincompress=threshold=0.02:ratio=6:attack=20:release=600[bgm_ducked];` +
+    `[speech][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2[outa]`;
 
   const args = [
     "-i", videoPath,
