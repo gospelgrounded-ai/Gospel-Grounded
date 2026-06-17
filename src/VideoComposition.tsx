@@ -146,6 +146,16 @@ export const VideoComposition: React.FC<Props> = ({ plan }) => {
     ? computeRetainedSegments(plan.durationInSeconds, cutPoints)
     : null;
 
+  // Pre-compute frame numbers for each segment so durationInFrames = nextFrom - thisFrom,
+  // guaranteeing perfect tile alignment with no 1-frame gaps or overlaps.
+  const segmentFrames = segments
+    ? segments.map((seg) => ({
+        from: Math.round(seg.editedStart * fps),
+        startFrom: Math.round(seg.originalStart * fps),
+        end: Math.round((seg.editedStart + seg.durationSecs) * fps),
+      }))
+    : null;
+
   const remappedGraphics = plan.graphics
     .map((cue) => {
       const start = remapTime(cue.startTime, cutPoints);
@@ -164,23 +174,27 @@ export const VideoComposition: React.FC<Props> = ({ plan }) => {
           transformOrigin: `${originX * 100}% ${originY * 100}%`,
         }}
       >
-        {segments ? (
-          segments.map((seg, i) => (
+        {segmentFrames ? (
+          segmentFrames.map((seg, i) => (
             <Sequence
               key={i}
-              from={Math.round(seg.editedStart * fps)}
-              durationInFrames={Math.max(1, Math.round(seg.durationSecs * fps))}
+              from={seg.from}
+              durationInFrames={Math.max(1, seg.end - seg.from)}
             >
               <AbsoluteFill>
                 <OffthreadVideo
                   src={plan.videoPath}
-                  startFrom={Math.round(seg.originalStart * fps)}
+                  startFrom={seg.startFrom}
+                  style={{ width: "100%", height: "100%" }}
                 />
               </AbsoluteFill>
             </Sequence>
           ))
         ) : (
-          <OffthreadVideo src={plan.videoPath} />
+          <OffthreadVideo
+            src={plan.videoPath}
+            style={{ width: "100%", height: "100%" }}
+          />
         )}
       </AbsoluteFill>
       {remappedGraphics.map((cue, i) => (

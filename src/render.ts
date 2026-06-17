@@ -43,6 +43,9 @@ export async function renderVideo(
     codec: "h264",
     pixelFormat: "yuv420p",   // critical for broad player compatibility (config file is CLI-only)
     imageFormat: "jpeg",
+    jpegQuality: 98,          // near-lossless intermediate frames — eliminates blocking artifacts
+    crf: 16,                  // visually lossless output (default 18; lower = better quality)
+    concurrency: 8,           // faster rendering on multi-core machines
     outputLocation: outputPath,
     inputProps: { plan },
     onProgress: ({ renderedFrames, progress }) => {
