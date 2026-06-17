@@ -86,7 +86,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:#888;text-transform:u
 .drop .fname{color:#e94560;font-weight:600;margin-top:8px;font-size:.9rem;word-break:break-all}
 input[type=file]{display:none}
 .opts{display:flex;gap:10px;margin-bottom:10px}
-.opt{flex:1;padding:12px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;touch-action:manipulation;-webkit-appearance:none;color:#e8e8ee}
+.opt{flex:1;padding:12px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;-webkit-appearance:none;touch-action:manipulation;color:#e8e8ee}
 .opt small{display:block;color:#555;font-size:.72rem;margin-top:3px}
 .opt.on{border-color:#e94560;background:rgba(233,69,96,.1);color:#e94560}
 .opt.on small{color:#c43a54}
@@ -94,18 +94,12 @@ input[type=file]{display:none}
 .hint a{color:#e94560}
 .lut-area{display:none;margin-bottom:4px}
 .lut-area.show{display:block}
-.builtin-area{display:none;margin-bottom:20px}
-.builtin-area.show{display:block}
-select{width:100%;padding:11px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#e8e8ee;font-size:.88rem;cursor:pointer;appearance:auto}
-select:focus{outline:none;border-color:#e94560}
-select option{background:#111}
-.lut-loading{color:#666;font-size:.82rem;padding:6px 0}
 .row{display:flex;gap:10px;margin-bottom:24px}
-.qopt{flex:1;padding:11px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;touch-action:manipulation;-webkit-appearance:none;color:#e8e8ee}
+.qopt{flex:1;padding:11px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;-webkit-appearance:none;touch-action:manipulation;color:#e8e8ee}
 .qopt small{display:block;color:#555;font-size:.72rem;margin-top:3px}
 .qopt.on{border-color:#e94560;background:rgba(233,69,96,.1);color:#e94560}
 .qopt.on small{color:#c43a54}
-.btn{width:100%;padding:15px;background:#e94560;color:#fff;border:none;border-radius:11px;font-size:.98rem;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.01em;touch-action:manipulation}
+.btn{width:100%;padding:15px;background:#e94560;color:#fff;border:none;border-radius:11px;font-size:.98rem;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.01em}
 .btn:hover{background:#c43a54}
 .btn:disabled{background:#2a2a35;color:#555;cursor:not-allowed}
 #status{display:none}
@@ -135,15 +129,11 @@ select option{background:#111}
 
     <label>LUT Source</label>
     <div class="opts">
-      <button type="button" class="opt on" id="o-builtin" onclick="setLut('builtin')">Built-in LUT<small>choose LUT</small></button>
+      <button type="button" class="opt on" id="o-builtin" onclick="setLut('builtin')">Built-in LUT<small>luts/ folder</small></button>
       <button type="button" class="opt" id="o-upload" onclick="setLut('upload')">Upload .cube<small>bring your own</small></button>
       <button type="button" class="opt" id="o-ffmpeg" onclick="setLut('ffmpeg')">FFmpeg Native<small>no file needed</small></button>
     </div>
     <div class="hint" id="hint"></div>
-    <div class="builtin-area show" id="builtin-area">
-      <div class="lut-loading" id="lut-loading">Loading LUTs…</div>
-      <select id="lut-select" style="display:none"></select>
-    </div>
     <div class="lut-area" id="lut-area">
       <div class="drop" id="ldrop" style="padding:22px;margin-bottom:20px">
         <p>.cube or .3dl LUT file</p>
@@ -174,55 +164,17 @@ select option{background:#111}
 </div>
 
 <script>
-var CHUNK_SIZE = 8 * 1024 * 1024;
-var lutMode='builtin', quality='balanced', evtSrc=null;
-
-// Fetch and populate LUT dropdown (8-second timeout + retry)
-function loadLuts(){
-  var loading=document.getElementById('lut-loading');
-  var sel=document.getElementById('lut-select');
-  loading.innerHTML='Loading LUTs&#8230;';loading.style.display='block';
-  sel.innerHTML='<option value="">-- loading --</option>';sel.style.display='block';sel.disabled=true;
-  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
-  var timer=setTimeout(function(){if(ctrl)ctrl.abort();},8000);
-  fetch('/luts',ctrl?{signal:ctrl.signal}:{}).then(function(r){return r.json();}).then(function(luts){
-    clearTimeout(timer);
-    loading.style.display='none';
-    sel.innerHTML='';sel.disabled=false;
-    if(!Array.isArray(luts)||!luts.length){
-      sel.innerHTML='<option value="">No LUTs found</option>';return;
-    }
-    var groups={};
-    for(var i=0;i<luts.length;i++){var g=luts[i].group||'';if(!groups[g])groups[g]=[];groups[g].push(luts[i]);}
-    var gKeys=Object.keys(groups).sort();
-    for(var ki=0;ki<gKeys.length;ki++){
-      var gk=gKeys[ki];var items=groups[gk];
-      if(gKeys.length>1&&gk){
-        var og=document.createElement('optgroup');
-        og.label=gk.replace(/-/g,' ').replace(/\//g,' / ');
-        for(var ji=0;ji<items.length;ji++){var o=document.createElement('option');o.value=items[ji].path;o.textContent=items[ji].name;og.appendChild(o);}
-        sel.appendChild(og);
-      }else{
-        for(var ji=0;ji<items.length;ji++){var o=document.createElement('option');o.value=items[ji].path;o.textContent=items[ji].name;sel.appendChild(o);}
-      }
-    }
-  }).catch(function(){
-    clearTimeout(timer);
-    loading.innerHTML='Could not load LUTs. <a href="#" onclick="loadLuts();return false;" style="color:#e94560">Retry</a>';
-    loading.style.display='block';
-    sel.innerHTML='<option value="">-- unavailable --</option>';sel.disabled=true;
-  });
-}
+const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB — stays under Railway's ingress limit
+let lutMode='builtin', quality='balanced', evtSrc=null;
 
 function setLut(m){
   lutMode=m;
   ['builtin','upload','ffmpeg'].forEach(v=>document.getElementById('o-'+v).classList.toggle('on',v===m));
-  document.getElementById('builtin-area').classList.toggle('show',m==='builtin');
   document.getElementById('lut-area').classList.toggle('show',m==='upload');
   const h=document.getElementById('hint');
-  if(m==='ffmpeg'){h.style.display='block';h.textContent='Uses FFmpeg colorspace filter (bt2020 → bt709). Decent approximation — no .cube file required.'}
+  if(m==='builtin'){h.style.display='block';h.innerHTML='Place the Apple Log to Rec.709 <code>.cube</code> file in the <strong>luts/</strong> directory on the server. <a href="https://support.apple.com/en-us/111900" target="_blank">Download from Apple →</a>'}
+  else if(m==='ffmpeg'){h.style.display='block';h.textContent='Uses FFmpeg colorspace filter (bt2020 → bt709). Decent approximation — no .cube file required.'}
   else{h.style.display='none'}
-  if(m==='builtin'){var s=document.getElementById('lut-select');if(!s.options.length||s.options[0].value==='')loadLuts();}
 }
 
 function setQ(q){
@@ -240,14 +192,13 @@ function wire(dropId,inputId,nameId){
 }
 wire('vdrop','vfile','vname');
 wire('ldrop','lfile','lname');
-loadLuts(); // pre-load on page ready
 
 document.getElementById('form').addEventListener('submit',async function(e){
   e.preventDefault();
   const vf=document.getElementById('vfile').files[0];
   if(!vf){alert('Select a video file first.');return}
-  const lutUploadFile=document.getElementById('lfile').files[0];
-  if(lutMode==='upload'&&!lutUploadFile){alert('Select a .cube LUT file.');return}
+  const lutFile=document.getElementById('lfile').files[0];
+  if(lutMode==='upload'&&!lutFile){alert('Select a .cube LUT file.');return}
 
   if(evtSrc){evtSrc.close();evtSrc=null}
   const sbtn=document.getElementById('sbtn');
@@ -263,7 +214,7 @@ document.getElementById('form').addEventListener('submit',async function(e){
       sbtn.textContent='Uploading LUT…';
       setProgress(1,'Uploading LUT file…');
       const fd=new FormData();
-      fd.append('lut',lutUploadFile);
+      fd.append('lut',lutFile);
       const r=await fetch('/upload-lut',{method:'POST',body:fd});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error||r.statusText);
@@ -298,11 +249,10 @@ document.getElementById('form').addEventListener('submit',async function(e){
     // Step 3: trigger conversion
     setProgress(82,'Assembling file…');
     sbtn.textContent='Processing…';
-    const lutFile=lutMode==='builtin'?document.getElementById('lut-select').value:'';
     const cr=await fetch('/start-convert',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uploadId,originalName:vf.name,lutMode,quality,lutToken,lutFile})
+      body:JSON.stringify({uploadId,originalName:vf.name,lutMode,quality,lutToken})
     });
     const cd=await cr.json();
     if(!cr.ok)throw new Error(cd.error||cr.statusText);
@@ -370,46 +320,17 @@ function setProgress(pct,text){
   document.getElementById('stext').textContent=text;
 }
 function showErr(msg){
-  var e=document.getElementById('errmsg');
+  const e=document.getElementById('errmsg');
   e.textContent=msg;e.style.display='block';
   setProgress(0,'Error');
-}
 }
 </script>
 </body>
 </html>`;
 
-// ─── LUT scanner ─────────────────────────────────────────────────────────────
-
-interface LutEntry { name: string; path: string; group: string }
-
-function scanLuts(dir: string, relBase: string = ''): LutEntry[] {
-  const results: LutEntry[] = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const relPath = relBase ? `${relBase}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) {
-      results.push(...scanLuts(path.join(dir, entry.name), relPath));
-    } else if (/\.(cube|3dl)$/i.test(entry.name)) {
-      const base = path.basename(entry.name, path.extname(entry.name));
-      const name = base.replace(/_/g, ' ');
-      const group = relBase;
-      results.push({ name, path: relPath, group });
-    }
-  }
-  return results;
-}
-
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 app.get('/', (_req, res) => res.send(HTML));
-
-app.get('/luts', (_req, res) => {
-  try {
-    res.json(scanLuts(LUTS_DIR));
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // Upload a small LUT file ahead of conversion
 app.post('/upload-lut', lutUpload.single('lut'), (req, res) => {
@@ -441,7 +362,7 @@ app.post('/chunk', chunkUpload.single('chunk'), (req, res) => {
 
 // Assemble chunks and kick off FFmpeg
 app.post('/start-convert', async (req, res) => {
-  const { uploadId, originalName, lutMode, quality, lutToken, lutFile } = req.body as Record<string, string>;
+  const { uploadId, originalName, lutMode, quality, lutToken } = req.body as Record<string, string>;
   if (!uploadId || !originalName) {
     res.status(400).json({ error: 'Missing uploadId or originalName' });
     return;
@@ -472,32 +393,15 @@ app.post('/start-convert', async (req, res) => {
   // Resolve LUT path
   let lutPath: string | null = null;
   if (lutMode === 'builtin') {
-    if (lutFile) {
-      // Client selected a specific LUT — resolve relative to LUTS_DIR, sanitise traversal
-      const resolved = path.resolve(LUTS_DIR, lutFile);
-      if (!resolved.startsWith(LUTS_DIR + path.sep) && resolved !== LUTS_DIR) {
-        fs.unlink(assembledPath, () => {});
-        res.status(400).json({ error: 'Invalid LUT path' });
-        return;
-      }
-      if (!fs.existsSync(resolved)) {
-        fs.unlink(assembledPath, () => {});
-        res.status(400).json({ error: `LUT not found: ${lutFile}` });
-        return;
-      }
-      lutPath = resolved;
-    } else {
-      // Fall back to first found LUT (recursive)
-      const all = scanLuts(LUTS_DIR);
-      if (all.length === 0) {
-        fs.unlink(assembledPath, () => {});
-        res.status(400).json({
-          error: 'No LUT found in luts/ directory. Use "Upload .cube" or "FFmpeg Native" mode.',
-        });
-        return;
-      }
-      lutPath = path.join(LUTS_DIR, all[0].path);
+    const cubes = fs.readdirSync(LUTS_DIR).filter(f => /\.(cube|3dl)$/i.test(f));
+    if (cubes.length === 0) {
+      fs.unlink(assembledPath, () => {});
+      res.status(400).json({
+        error: 'No LUT found in luts/ directory. Use "Upload .cube" or "FFmpeg Native" mode.',
+      });
+      return;
     }
+    lutPath = path.join(LUTS_DIR, cubes[0]);
   } else if (lutMode === 'upload') {
     if (!lutToken) {
       fs.unlink(assembledPath, () => {});
