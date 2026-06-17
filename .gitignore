@@ -2,7 +2,6 @@ node_modules/
 dist/
 out/
 input/
-uploads/
 *.mp4
 *.mp3
 *.wav
