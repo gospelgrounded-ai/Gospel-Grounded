@@ -177,37 +177,41 @@ select option{background:#111}
 const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB — stays under Railway's ingress limit
 let lutMode='builtin', quality='balanced', evtSrc=null;
 
-// Fetch and populate LUT dropdown
+// Fetch and populate LUT dropdown (8-second timeout + retry)
 function loadLuts(){
-  const loading=document.getElementById('lut-loading');
-  const sel=document.getElementById('lut-select');
-  loading.style.display='block';sel.style.display='none';
-  fetch('/luts').then(r=>r.json()).then(luts=>{
+  var loading=document.getElementById('lut-loading');
+  var sel=document.getElementById('lut-select');
+  loading.innerHTML='Loading LUTs&#8230;';loading.style.display='block';
+  sel.innerHTML='<option value="">-- loading --</option>';sel.style.display='block';sel.disabled=true;
+  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  var timer=setTimeout(function(){if(ctrl)ctrl.abort();},8000);
+  fetch('/luts',ctrl?{signal:ctrl.signal}:{}).then(function(r){return r.json();}).then(function(luts){
+    clearTimeout(timer);
     loading.style.display='none';
-    sel.innerHTML='';
-    if(!luts.length){
-      loading.textContent='No LUTs found on server.';loading.style.display='block';return;
+    sel.innerHTML='';sel.disabled=false;
+    if(!Array.isArray(luts)||!luts.length){
+      sel.innerHTML='<option value="">No LUTs found</option>';return;
     }
-    // Group by directory
-    const groups={};
-    luts.forEach(l=>{
-      const g=l.group||'';
-      if(!groups[g])groups[g]=[];
-      groups[g].push(l);
-    });
-    const gKeys=Object.keys(groups).sort();
-    gKeys.forEach(g=>{
-      if(gKeys.length>1&&g){
-        const og=document.createElement('optgroup');
-        og.label=g.replace(/-/g,' ').replace(/\//g,' › ');
-        groups[g].forEach(l=>{const o=document.createElement('option');o.value=l.path;o.textContent=l.name;og.appendChild(o)});
+    var groups={};
+    for(var i=0;i<luts.length;i++){var g=luts[i].group||'';if(!groups[g])groups[g]=[];groups[g].push(luts[i]);}
+    var gKeys=Object.keys(groups).sort();
+    for(var ki=0;ki<gKeys.length;ki++){
+      var gk=gKeys[ki];var items=groups[gk];
+      if(gKeys.length>1&&gk){
+        var og=document.createElement('optgroup');
+        og.label=gk.replace(/-/g,' ').replace(/\//g,' / ');
+        for(var ji=0;ji<items.length;ji++){var o=document.createElement('option');o.value=items[ji].path;o.textContent=items[ji].name;og.appendChild(o);}
         sel.appendChild(og);
-      } else {
-        groups[g].forEach(l=>{const o=document.createElement('option');o.value=l.path;o.textContent=l.name;sel.appendChild(o)});
+      }else{
+        for(var ji=0;ji<items.length;ji++){var o=document.createElement('option');o.value=items[ji].path;o.textContent=items[ji].name;sel.appendChild(o);}
       }
-    });
-    sel.style.display='block';
-  }).catch(()=>{loading.textContent='Could not load LUT list.';});
+    }
+  }).catch(function(){
+    clearTimeout(timer);
+    loading.innerHTML='Could not load LUTs. <a href="#" onclick="loadLuts();return false;" style="color:#e94560">Retry</a>';
+    loading.style.display='block';
+    sel.innerHTML='<option value="">-- unavailable --</option>';sel.disabled=true;
+  });
 }
 
 function setLut(m){
@@ -218,7 +222,7 @@ function setLut(m){
   const h=document.getElementById('hint');
   if(m==='ffmpeg'){h.style.display='block';h.textContent='Uses FFmpeg colorspace filter (bt2020 → bt709). Decent approximation — no .cube file required.'}
   else{h.style.display='none'}
-  if(m==='builtin'&&document.getElementById('lut-select').options.length===0)loadLuts();
+  if(m==='builtin'){var s=document.getElementById('lut-select');if(!s.options.length||s.options[0].value==='')loadLuts();}
 }
 
 function setQ(q){
