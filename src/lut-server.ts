@@ -71,7 +71,7 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Apple Log → Rec.709 Converter</title>
+<title>Apple Log to Rec.709 Converter</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#07070f;color:#e8e8ee;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:48px 20px}
@@ -81,25 +81,23 @@ h1{font-size:1.9rem;font-weight:700;letter-spacing:-0.02em;margin-bottom:6px}
 label{display:block;font-size:.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
 .drop{border:2px dashed rgba(255,255,255,.15);border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:24px}
 .drop:hover,.drop.over{border-color:#e94560;background:rgba(233,69,96,.06)}
-.drop .ico{font-size:2.2rem;margin-bottom:10px;display:block}
 .drop p{color:#777;font-size:.88rem;line-height:1.5}
 .drop .fname{color:#e94560;font-weight:600;margin-top:8px;font-size:.9rem;word-break:break-all}
 input[type=file]{display:none}
 .opts{display:flex;gap:10px;margin-bottom:10px}
-.opt{flex:1;padding:12px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;-webkit-appearance:none;touch-action:manipulation;color:#e8e8ee}
+.opt{flex:1;padding:12px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;-webkit-appearance:none;touch-action:manipulation;cursor:pointer;color:#e8e8ee}
 .opt small{display:block;color:#555;font-size:.72rem;margin-top:3px}
 .opt.on{border-color:#e94560;background:rgba(233,69,96,.1);color:#e94560}
 .opt.on small{color:#c43a54}
 .hint{background:rgba(233,69,96,.08);border:1px solid rgba(233,69,96,.18);border-radius:8px;padding:11px 14px;font-size:.8rem;color:#c43a54;margin-bottom:14px;line-height:1.5;display:none}
-.hint a{color:#e94560}
 .lut-area{display:none;margin-bottom:4px}
 .lut-area.show{display:block}
 .row{display:flex;gap:10px;margin-bottom:24px}
-.qopt{flex:1;padding:11px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;-webkit-appearance:none;touch-action:manipulation;color:#e8e8ee}
+.qopt{flex:1;padding:11px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;text-align:center;font-size:.82rem;font-weight:500;transition:all .2s;line-height:1.4;-webkit-appearance:none;touch-action:manipulation;cursor:pointer;color:#e8e8ee}
 .qopt small{display:block;color:#555;font-size:.72rem;margin-top:3px}
 .qopt.on{border-color:#e94560;background:rgba(233,69,96,.1);color:#e94560}
 .qopt.on small{color:#c43a54}
-.btn{width:100%;padding:15px;background:#e94560;color:#fff;border:none;border-radius:11px;font-size:.98rem;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.01em}
+.btn{width:100%;padding:15px;background:#e94560;color:#fff;border:none;border-radius:11px;font-size:.98rem;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.01em;touch-action:manipulation}
 .btn:hover{background:#c43a54}
 .btn:disabled{background:#2a2a35;color:#555;cursor:not-allowed}
 #status{display:none}
@@ -111,27 +109,28 @@ input[type=file]{display:none}
 .dl-btn{display:block;width:100%;padding:14px;background:#1c6e42;color:#fff;border:none;border-radius:11px;font-size:.95rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;margin-top:14px;transition:background .2s}
 .dl-btn:hover{background:#175735}
 .err{color:#e94560;font-size:.85rem;margin-top:10px;padding:10px 14px;background:rgba(233,69,96,.08);border-radius:8px;border:1px solid rgba(233,69,96,.2)}
+#jscheck{background:#e94560;color:#fff;text-align:center;padding:8px;font-size:.8rem;display:block}
 </style>
 </head>
 <body>
-<h1>Apple Log → Rec.709</h1>
-<p class="sub">FFmpeg LUT Converter &middot; Gospel Grounded</p>
+<div id="jscheck">JavaScript not loaded — please hard-refresh</div>
+<h1>Apple Log to Rec.709</h1>
+<p class="sub">FFmpeg LUT Converter</p>
 
 <div class="card">
   <form id="form">
     <label>Video File</label>
     <div class="drop" id="vdrop">
-      <span class="ico">🎬</span>
-      <p>Drag &amp; drop your Apple Log video here<br>or <strong>click to browse</strong></p>
+      <p>Tap to select your Apple Log video</p>
       <p class="fname" id="vname"></p>
       <input type="file" id="vfile" accept="video/*,.mp4,.mov,.mxf">
     </div>
 
     <label>LUT Source</label>
     <div class="opts">
-      <button type="button" class="opt on" id="o-builtin" onclick="setLut('builtin')">Built-in LUT<small>luts/ folder</small></button>
-      <button type="button" class="opt" id="o-upload" onclick="setLut('upload')">Upload .cube<small>bring your own</small></button>
-      <button type="button" class="opt" id="o-ffmpeg" onclick="setLut('ffmpeg')">FFmpeg Native<small>no file needed</small></button>
+      <button type="button" class="opt on" id="o-builtin">Built-in LUT<small>luts/ folder</small></button>
+      <button type="button" class="opt" id="o-upload">Upload .cube<small>bring your own</small></button>
+      <button type="button" class="opt" id="o-ffmpeg">FFmpeg Native<small>no file needed</small></button>
     </div>
     <div class="hint" id="hint"></div>
     <div class="lut-area" id="lut-area">
@@ -144,9 +143,9 @@ input[type=file]{display:none}
 
     <label>Output Quality</label>
     <div class="row">
-      <button type="button" class="qopt" id="q-high" onclick="setQ('high')">High<small>CRF 18</small></button>
-      <button type="button" class="qopt on" id="q-balanced" onclick="setQ('balanced')">Balanced<small>CRF 23</small></button>
-      <button type="button" class="qopt" id="q-fast" onclick="setQ('fast')">Fast<small>CRF 28</small></button>
+      <button type="button" class="qopt" id="q-high">High<small>CRF 18</small></button>
+      <button type="button" class="qopt on" id="q-balanced">Balanced<small>CRF 23</small></button>
+      <button type="button" class="qopt" id="q-fast">Fast<small>CRF 28</small></button>
     </div>
 
     <button type="submit" class="btn" id="sbtn">Convert Video</button>
@@ -154,183 +153,239 @@ input[type=file]{display:none}
 </div>
 
 <div id="status" class="card">
-  <div class="stext" id="stext">Processing…</div>
+  <div class="stext" id="stext">Processing...</div>
   <div class="prog-wrap">
     <div class="prog-bg"><div class="prog-fill" id="pfill"></div></div>
     <div class="prog-pct" id="ppct">0%</div>
   </div>
-  <a id="dlbtn" class="dl-btn" style="display:none" download>⬇&nbsp; Download Converted Video</a>
+  <a id="dlbtn" class="dl-btn" style="display:none" download>Download Converted Video</a>
   <div class="err" id="errmsg" style="display:none"></div>
 </div>
 
-<script>
-const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB — stays under Railway's ingress limit
-let lutMode='builtin', quality='balanced', evtSrc=null;
-
-function setLut(m){
-  lutMode=m;
-  ['builtin','upload','ffmpeg'].forEach(v=>document.getElementById('o-'+v).classList.toggle('on',v===m));
-  document.getElementById('lut-area').classList.toggle('show',m==='upload');
-  const h=document.getElementById('hint');
-  if(m==='builtin'){h.style.display='block';h.innerHTML='Place the Apple Log to Rec.709 <code>.cube</code> file in the <strong>luts/</strong> directory on the server. <a href="https://support.apple.com/en-us/111900" target="_blank">Download from Apple →</a>'}
-  else if(m==='ffmpeg'){h.style.display='block';h.textContent='Uses FFmpeg colorspace filter (bt2020 → bt709). Decent approximation — no .cube file required.'}
-  else{h.style.display='none'}
-}
-
-function setQ(q){
-  quality=q;
-  ['high','balanced','fast'].forEach(v=>document.getElementById('q-'+v).classList.toggle('on',v===q));
-}
-
-function wire(dropId,inputId,nameId){
-  const dz=document.getElementById(dropId),inp=document.getElementById(inputId);
-  dz.addEventListener('click',()=>inp.click());
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
-  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
-  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0]){inp.files=e.dataTransfer.files;document.getElementById(nameId).textContent=e.dataTransfer.files[0].name}});
-  inp.addEventListener('change',()=>document.getElementById(nameId).textContent=inp.files[0]?.name||'');
-}
-wire('vdrop','vfile','vname');
-wire('ldrop','lfile','lname');
-
-document.getElementById('form').addEventListener('submit',async function(e){
-  e.preventDefault();
-  const vf=document.getElementById('vfile').files[0];
-  if(!vf){alert('Select a video file first.');return}
-  const lutFile=document.getElementById('lfile').files[0];
-  if(lutMode==='upload'&&!lutFile){alert('Select a .cube LUT file.');return}
-
-  if(evtSrc){evtSrc.close();evtSrc=null}
-  const sbtn=document.getElementById('sbtn');
-  sbtn.disabled=true;
-  document.getElementById('status').style.display='block';
-  document.getElementById('dlbtn').style.display='none';
-  document.getElementById('errmsg').style.display='none';
-
-  try{
-    // Step 1: upload LUT if needed (small file, one shot)
-    let lutToken=null;
-    if(lutMode==='upload'){
-      sbtn.textContent='Uploading LUT…';
-      setProgress(1,'Uploading LUT file…');
-      const fd=new FormData();
-      fd.append('lut',lutFile);
-      const r=await fetch('/upload-lut',{method:'POST',body:fd});
-      const d=await r.json();
-      if(!r.ok)throw new Error(d.error||r.statusText);
-      lutToken=d.lutToken;
-    }
-
-    // Step 2: upload video in 8 MB chunks
-    const totalChunks=Math.ceil(vf.size/CHUNK_SIZE);
-    const uploadId=Date.now()+'-'+Math.random().toString(36).slice(2,8);
-
-    for(let i=0;i<totalChunks;i++){
-      const pct=Math.round((i/totalChunks)*80);
-      sbtn.textContent='Uploading…';
-      setProgress(pct,'Uploading… chunk '+(i+1)+'/'+totalChunks);
-      const chunk=vf.slice(i*CHUNK_SIZE,Math.min((i+1)*CHUNK_SIZE,vf.size));
-      const fd=new FormData();
-      fd.append('chunk',chunk,vf.name);
-      fd.append('uploadId',uploadId);
-      fd.append('chunkIndex',String(i));
-      fd.append('totalChunks',String(totalChunks));
-      fd.append('originalName',vf.name);
-
-      await new Promise(function(resolve,reject){
-        const xhr=new XMLHttpRequest();
-        xhr.open('POST','/chunk');
-        xhr.onload=()=>xhr.status<300?resolve(null):reject(new Error('Chunk '+i+' failed ('+xhr.status+'): '+xhr.responseText));
-        xhr.onerror=()=>reject(new Error('Network error on chunk '+(i+1)));
-        xhr.send(fd);
-      });
-    }
-
-    // Step 3: trigger conversion
-    setProgress(82,'Assembling file…');
-    sbtn.textContent='Processing…';
-    const cr=await fetch('/start-convert',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uploadId,originalName:vf.name,lutMode,quality,lutToken})
-    });
-    const cd=await cr.json();
-    if(!cr.ok)throw new Error(cd.error||cr.statusText);
-
-    startProgress(cd.jobId,vf.name,sbtn);
-  }catch(err){
-    showErr(String(err.message||err));
-    sbtn.disabled=false;sbtn.textContent='Convert Video';
-  }
-});
-
-function startProgress(jobId,fileName,sbtn){
-  sbtn.textContent='Converting…';
-  setProgress(85,'Starting FFmpeg…');
-  evtSrc=new EventSource('/progress/'+jobId);
-  evtSrc.onmessage=ev=>{
-    const d=JSON.parse(ev.data);
-    if(d.error){showErr(d.error);evtSrc.close();sbtn.disabled=false;sbtn.textContent='Convert Video';return}
-    if(d.status==='running'||d.status==='queued'){
-      // Map FFmpeg 0-100 progress to UI 85-99 range
-      const pct=85+Math.round((d.progress||0)*0.14);
-      setProgress(pct,'Converting… '+(d.progress||0)+'%');
-    }else if(d.status==='done'){
-      setProgress(100,'Done!');
-      evtSrc.close();
-      const dl=document.getElementById('dlbtn');
-      dl.href='/download/'+jobId;
-      dl.download=fileName.replace(/\\.[^.]+$/,'')+'_rec709.mp4';
-      dl.style.display='block';
-      sbtn.disabled=false;sbtn.textContent='Convert Another';
-    }else if(d.status==='error'){
-      showErr(d.error||'Conversion failed');
-      evtSrc.close();
-      sbtn.disabled=false;sbtn.textContent='Convert Video';
-    }
-  };
-  evtSrc.onerror=()=>{
-    evtSrc.close();evtSrc=null;
-    const poll=()=>{
-      fetch('/status/'+jobId).then(r=>r.json()).then(d=>{
-        if(d.status==='running'||d.status==='queued'){
-          const pct=85+Math.round((d.progress||0)*0.14);
-          setProgress(pct,'Converting… '+(d.progress||0)+'%');
-          setTimeout(poll,3000);
-        }else if(d.status==='done'){
-          setProgress(100,'Done!');
-          const dl=document.getElementById('dlbtn');
-          dl.href='/download/'+jobId;
-          dl.download=fileName.replace(/\\.[^.]+$/,'')+'_rec709.mp4';
-          dl.style.display='block';
-          sbtn.disabled=false;sbtn.textContent='Convert Another';
-        }else{
-          showErr(d.error||'Conversion failed');
-          sbtn.disabled=false;sbtn.textContent='Convert Video';
-        }
-      }).catch(()=>setTimeout(poll,5000));
-    };
-    setTimeout(poll,3000);
-  };
-}
-
-function setProgress(pct,text){
-  document.getElementById('pfill').style.width=pct+'%';
-  document.getElementById('ppct').textContent=pct+'%';
-  document.getElementById('stext').textContent=text;
-}
-function showErr(msg){
-  const e=document.getElementById('errmsg');
-  e.textContent=msg;e.style.display='block';
-  setProgress(0,'Error');
-}
-</script>
+<script src="/app.js"></script>
 </body>
 </html>`;
+
+// ─── Client JavaScript (served separately to avoid inline script issues) ──────
+
+const APP_JS = `
+var CHUNK_SIZE = 8 * 1024 * 1024;
+var lutMode = 'builtin';
+var quality = 'balanced';
+var evtSrc = null;
+
+// Confirm JS is running — hide the red warning bar
+document.getElementById('jscheck').style.display = 'none';
+
+// LUT source buttons
+document.getElementById('o-builtin').addEventListener('click', function() { setLut('builtin'); });
+document.getElementById('o-upload').addEventListener('click', function() { setLut('upload'); });
+document.getElementById('o-ffmpeg').addEventListener('click', function() { setLut('ffmpeg'); });
+
+// Quality buttons
+document.getElementById('q-high').addEventListener('click', function() { setQ('high'); });
+document.getElementById('q-balanced').addEventListener('click', function() { setQ('balanced'); });
+document.getElementById('q-fast').addEventListener('click', function() { setQ('fast'); });
+
+// File drop zones
+wireDrop('vdrop', 'vfile', 'vname');
+wireDrop('ldrop', 'lfile', 'lname');
+
+function wireDrop(dropId, inputId, nameId) {
+  var dz = document.getElementById(dropId);
+  var inp = document.getElementById(inputId);
+  dz.addEventListener('click', function() { inp.click(); });
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', function() { dz.classList.remove('over'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.classList.remove('over');
+    if (e.dataTransfer.files[0]) {
+      inp.files = e.dataTransfer.files;
+      document.getElementById(nameId).textContent = e.dataTransfer.files[0].name;
+    }
+  });
+  inp.addEventListener('change', function() {
+    document.getElementById(nameId).textContent = inp.files && inp.files[0] ? inp.files[0].name : '';
+  });
+}
+
+function setLut(m) {
+  lutMode = m;
+  document.getElementById('o-builtin').classList.toggle('on', m === 'builtin');
+  document.getElementById('o-upload').classList.toggle('on', m === 'upload');
+  document.getElementById('o-ffmpeg').classList.toggle('on', m === 'ffmpeg');
+  document.getElementById('lut-area').classList.toggle('show', m === 'upload');
+  var h = document.getElementById('hint');
+  if (m === 'builtin') {
+    h.style.display = 'block';
+    h.textContent = 'Uses the Colorify LUT bundled on the server.';
+  } else if (m === 'ffmpeg') {
+    h.style.display = 'block';
+    h.textContent = 'Uses FFmpeg colorspace filter (bt2020 to bt709). No LUT file required.';
+  } else {
+    h.style.display = 'none';
+  }
+}
+
+function setQ(q) {
+  quality = q;
+  document.getElementById('q-high').classList.toggle('on', q === 'high');
+  document.getElementById('q-balanced').classList.toggle('on', q === 'balanced');
+  document.getElementById('q-fast').classList.toggle('on', q === 'fast');
+}
+
+document.getElementById('form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var vf = document.getElementById('vfile').files[0];
+  if (!vf) { alert('Select a video file first.'); return; }
+  var lutFile = document.getElementById('lfile').files[0];
+  if (lutMode === 'upload' && !lutFile) { alert('Select a .cube LUT file.'); return; }
+
+  if (evtSrc) { evtSrc.close(); evtSrc = null; }
+  var sbtn = document.getElementById('sbtn');
+  sbtn.disabled = true;
+  document.getElementById('status').style.display = 'block';
+  document.getElementById('dlbtn').style.display = 'none';
+  document.getElementById('errmsg').style.display = 'none';
+
+  var lutToken = null;
+
+  function doUpload() {
+    if (lutMode === 'upload') {
+      sbtn.textContent = 'Uploading LUT...';
+      setProgress(1, 'Uploading LUT file...');
+      var fd = new FormData();
+      fd.append('lut', lutFile);
+      fetch('/upload-lut', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.error) throw new Error(d.error);
+          lutToken = d.lutToken;
+          doChunks(0);
+        })
+        .catch(function(err) { onErr(err.message); });
+    } else {
+      doChunks(0);
+    }
+  }
+
+  var totalChunks = Math.ceil(vf.size / CHUNK_SIZE);
+  var uploadId = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+
+  function doChunks(i) {
+    if (i >= totalChunks) { doConvert(); return; }
+    var pct = Math.round((i / totalChunks) * 80);
+    sbtn.textContent = 'Uploading...';
+    setProgress(pct, 'Uploading chunk ' + (i + 1) + ' of ' + totalChunks);
+    var chunk = vf.slice(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, vf.size));
+    var fd = new FormData();
+    fd.append('chunk', chunk, vf.name);
+    fd.append('uploadId', uploadId);
+    fd.append('chunkIndex', String(i));
+    fd.append('totalChunks', String(totalChunks));
+    fd.append('originalName', vf.name);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/chunk');
+    xhr.onload = function() {
+      if (xhr.status < 300) { doChunks(i + 1); }
+      else { onErr('Chunk ' + (i+1) + ' failed: ' + xhr.responseText); }
+    };
+    xhr.onerror = function() { onErr('Network error on chunk ' + (i + 1)); };
+    xhr.send(fd);
+  }
+
+  function doConvert() {
+    setProgress(82, 'Assembling file...');
+    sbtn.textContent = 'Processing...';
+    fetch('/start-convert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uploadId: uploadId, originalName: vf.name, lutMode: lutMode, quality: quality, lutToken: lutToken })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) throw new Error(d.error);
+      startProgress(d.jobId, vf.name, sbtn);
+    })
+    .catch(function(err) { onErr(err.message); });
+  }
+
+  doUpload();
+});
+
+function startProgress(jobId, fileName, sbtn) {
+  sbtn.textContent = 'Converting...';
+  setProgress(85, 'Starting FFmpeg...');
+  evtSrc = new EventSource('/progress/' + jobId);
+  evtSrc.onmessage = function(ev) {
+    var d = JSON.parse(ev.data);
+    if (d.error) { onErr(d.error); evtSrc.close(); sbtn.disabled = false; sbtn.textContent = 'Convert Video'; return; }
+    if (d.status === 'running' || d.status === 'queued') {
+      setProgress(85 + Math.round((d.progress || 0) * 0.14), 'Converting ' + (d.progress || 0) + '%');
+    } else if (d.status === 'done') {
+      setProgress(100, 'Done!');
+      evtSrc.close();
+      var ext = fileName.lastIndexOf('.');
+      var base = ext > 0 ? fileName.slice(0, ext) : fileName;
+      var dl = document.getElementById('dlbtn');
+      dl.href = '/download/' + jobId;
+      dl.download = base + '_rec709.mp4';
+      dl.style.display = 'block';
+      sbtn.disabled = false; sbtn.textContent = 'Convert Another';
+    } else if (d.status === 'error') {
+      onErr(d.error || 'Conversion failed'); evtSrc.close();
+      sbtn.disabled = false; sbtn.textContent = 'Convert Video';
+    }
+  };
+  evtSrc.onerror = function() {
+    evtSrc.close(); evtSrc = null;
+    function poll() {
+      fetch('/status/' + jobId).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.status === 'running' || d.status === 'queued') {
+          setProgress(85 + Math.round((d.progress || 0) * 0.14), 'Converting ' + (d.progress || 0) + '%');
+          setTimeout(poll, 3000);
+        } else if (d.status === 'done') {
+          setProgress(100, 'Done!');
+          var ext = fileName.lastIndexOf('.');
+          var base = ext > 0 ? fileName.slice(0, ext) : fileName;
+          var dl = document.getElementById('dlbtn');
+          dl.href = '/download/' + jobId;
+          dl.download = base + '_rec709.mp4';
+          dl.style.display = 'block';
+          sbtn.disabled = false; sbtn.textContent = 'Convert Another';
+        } else {
+          onErr(d.error || 'Conversion failed');
+          sbtn.disabled = false; sbtn.textContent = 'Convert Video';
+        }
+      }).catch(function() { setTimeout(poll, 5000); });
+    }
+    setTimeout(poll, 3000);
+  };
+}
+
+function setProgress(pct, text) {
+  document.getElementById('pfill').style.width = pct + '%';
+  document.getElementById('ppct').textContent = pct + '%';
+  document.getElementById('stext').textContent = text;
+}
+
+function onErr(msg) {
+  var e = document.getElementById('errmsg');
+  e.textContent = msg; e.style.display = 'block';
+  setProgress(0, 'Error');
+  var sbtn = document.getElementById('sbtn');
+  sbtn.disabled = false; sbtn.textContent = 'Convert Video';
+}
+`;
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 app.get('/', (_req, res) => res.send(HTML));
+
+app.get('/app.js', (_req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(APP_JS);
+});
 
 // Upload a small LUT file ahead of conversion
 app.post('/upload-lut', lutUpload.single('lut'), (req, res) => {
