@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Gospel Grounded — Transcript & Captions</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #d4af37;
+      --red: #e94560;
+      --bg: #08080f;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f0;
+      --muted: #777;
+      --green: #22c55e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 64px;
+    }
+
+    /* ── Navigation ──────────────────────────────── */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 900px;
+      margin: 0 auto 36px;
+    }
+
+    .nav-logo h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .nav-logo h1 span { color: var(--gold); }
+    .nav-logo p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .nav-links { display: flex; gap: 12px; }
+    .nav-link {
+      font-size: 13px; color: var(--muted); text-decoration: none;
+      padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .nav-link:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .nav-link.active { color: var(--gold); border-color: var(--gold); }
+
+    /* ── Cards ───────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto 20px;
+    }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); margin-bottom: 14px;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+    /* ── Drop Zone ───────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed rgba(212,175,55,0.4);
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--gold);
+      background: rgba(212,175,55,0.05);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+
+    .drop-icon { font-size: 44px; margin-bottom: 14px; }
+
+    .drop-zone h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+
+    .drop-zone p { font-size: 13px; color: var(--muted); }
+
+    #file-name {
+      margin-top: 10px; font-size: 13px; color: var(--gold);
+      font-weight: 500; min-height: 18px;
+    }
+
+    /* ── Buttons ─────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 13px 20px; border-radius: 10px; border: none;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-block { display: flex; width: 100%; margin-top: 16px; }
+    .btn-primary { background: var(--gold); color: #000; }
+    .btn-secondary {
+      background: rgba(255,255,255,0.07); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-green { background: var(--green); color: #000; }
+
+    /* ── Progress ────────────────────────────────── */
+    .progress-wrap {
+      background: rgba(255,255,255,0.07); border-radius: 6px;
+      height: 6px; margin-top: 14px; overflow: hidden; display: none;
+    }
+
+    .progress-bar {
+      height: 100%; background: var(--gold); border-radius: 6px;
+      width: 0%; transition: width 0.3s;
+    }
+
+    #upload-pct { font-size: 12px; color: var(--muted); margin-top: 6px; display: none; }
+
+    /* ── Stage tracker ───────────────────────────── */
+    .stages { display: flex; flex-direction: column; gap: 10px; }
+
+    .stage {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      font-size: 14px; color: var(--muted);
+      transition: color 0.3s, background 0.3s;
+    }
+
+    .stage.active { color: var(--text); background: rgba(212,175,55,0.1); }
+    .stage.done   { color: var(--green); background: rgba(34,197,94,0.07); }
+    .stage.failed { color: #f87171;      background: rgba(248,113,113,0.07); }
+
+    .stage-icon { font-size: 18px; flex-shrink: 0; }
+
+    .stage-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+
+    .stage.active .stage-dot { animation: pulse 1s ease-in-out infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.25; }
+    }
+
+    #status-msg { font-size: 13px; color: var(--muted); margin-top: 14px; text-align: center; min-height: 18px; }
+
+    /* ── Results ─────────────────────────────────── */
+    #results-card { display: none; }
+
+    .results-meta {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+
+    .meta-pill {
+      font-size: 12px; color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    /* Title recommendations */
+    .titles-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .title-card {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 13px 16px; border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      cursor: pointer; transition: background 0.2s, border-color 0.2s;
+    }
+
+    .title-card:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+
+    .title-card.copied { border-color: var(--green); background: rgba(34,197,94,0.07); }
+
+    .title-text { font-size: 14px; font-weight: 500; flex: 1; line-height: 1.4; }
+
+    .title-num {
+      font-size: 11px; font-weight: 700; color: var(--gold);
+      opacity: 0.6; flex-shrink: 0; width: 18px; text-align: right;
+    }
+
+    .copy-icon { font-size: 14px; flex-shrink: 0; color: var(--muted); }
+    .title-card.copied .copy-icon { color: var(--green); }
+    .copy-toast { font-size: 11px; color: var(--green); display: none; }
+    .title-card.copied .copy-toast { display: inline; }
+    .title-card.copied .copy-icon-default { display: none; }
+
+    /* Transcript */
+    .transcript-box {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      max-height: 420px;
+      overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #ddd;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .transcript-box::-webkit-scrollbar { width: 6px; }
+    .transcript-box::-webkit-scrollbar-track { background: transparent; }
+    .transcript-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .transcript-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+    /* Captions */
+    .caption-preview {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      max-height: 260px;
+      overflow-y: auto;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #aaa;
+      white-space: pre;
+    }
+
+    .caption-preview::-webkit-scrollbar { width: 6px; }
+    .caption-preview::-webkit-scrollbar-track { background: transparent; }
+    .caption-preview::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .caption-format-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+
+    .format-tab {
+      padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: transparent; color: var(--muted);
+      cursor: pointer; transition: all 0.2s;
+    }
+
+    .format-tab.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
+    .caption-downloads { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+    /* Recent jobs */
+    #jobs-section { display: none; }
+
+    .job-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; border-radius: 8px;
+      background: rgba(255,255,255,0.03); font-size: 13px;
+    }
+
+    .badge {
+      font-size: 11px; font-weight: 700; padding: 3px 9px;
+      border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .badge-done    { background: rgba(34,197,94,0.12); color: var(--green); }
+    .badge-failed  { background: rgba(248,113,113,0.12); color: #f87171; }
+    .badge-active  { background: rgba(212,175,55,0.12); color: var(--gold); }
+
+    /* Responsive */
+    @media (min-width: 640px) {
+      .titles-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (min-width: 900px) {
+      body { padding: 32px 24px 80px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-logo">
+      <h1>Gospel <span>Grounded</span></h1>
+      <p>Transcript · Captions · Titles</p>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Video Editor</a>
+      <a href="/transcript.html" class="nav-link active">Transcribe</a>
+    </div>
+  </nav>
+
+  <!-- Upload card -->
+  <div class="card" id="upload-card">
+    <p class="section-label">Upload Your Video</p>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".mp4,.mov,.m4v,.mkv,.webm" />
+      <div class="drop-icon">🎙️</div>
+      <h3>Select or drop your video</h3>
+      <p>MP4, MOV, MKV, WebM &middot; Up to 10 GB &middot; Any length</p>
+      <div id="file-name"></div>
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div id="upload-pct"></div>
+
+    <button class="btn btn-primary btn-block" id="upload-btn" disabled>
+      Generate Transcript &amp; Titles
+    </button>
+  </div>
+
+  <!-- Processing card -->
+  <div class="card" id="processing-card" style="display:none;">
+    <p class="section-label">Processing</p>
+    <div class="stages">
+      <div class="stage" id="stage-transcribing">
+        <div class="stage-dot"></div>
+        <span class="stage-icon">🎙️</span>
+        <span>Extracting &amp; transcribing audio with Whisper</span>
+      </div>
+      <div class="stage" id="stage-generating">
+        <div class="stage-dot"></div>
+        <span class="stage-icon">✨</span>
+        <span>Generating captions &amp; title recommendations with Claude</span>
+      </div>
+    </div>
+    <div id="status-msg"></div>
+  </div>
+
+  <!-- Results card -->
+  <div class="card" id="results-card">
+
+    <!-- Meta strip -->
+    <div class="results-meta" id="results-meta"></div>
+
+    <!-- Title Recommendations -->
+    <p class="section-label">Title Recommendations</p>
+    <div class="titles-grid" id="titles-grid"></div>
+
+    <div class="divider"></div>
+
+    <!-- Full Transcript -->
+    <p class="section-label">Full Transcript</p>
+    <div class="transcript-box" id="transcript-box"></div>
+    <div class="transcript-actions">
+      <button class="btn btn-secondary" id="copy-transcript-btn">Copy Transcript</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Captions -->
+    <p class="section-label">Captions</p>
+    <div class="caption-format-tabs">
+      <button class="format-tab active" data-fmt="srt">SRT</button>
+      <button class="format-tab" data-fmt="vtt">WebVTT</button>
+    </div>
+    <div class="caption-preview" id="caption-preview"></div>
+    <div class="caption-downloads" id="caption-downloads"></div>
+  </div>
+
+  <!-- Recent jobs card -->
+  <div class="card" id="jobs-section">
+    <p class="section-label">Recent Jobs</p>
+    <div id="jobs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+
+  <script>
+    let currentJobId = null;
+    let sseSource = null;
+    let pollTimer = null;
+    let resultData = null; // full job data after completion
+    let activeFormat = 'srt';
+
+    /* ── Elements ──────────────────────────────── */
+    const fileInput      = document.getElementById('file-input');
+    const fileNameEl     = document.getElementById('file-name');
+    const uploadBtn      = document.getElementById('upload-btn');
+    const progressWrap   = document.getElementById('progress-wrap');
+    const progressBar    = document.getElementById('progress-bar');
+    const uploadPct      = document.getElementById('upload-pct');
+    const dropZone       = document.getElementById('drop-zone');
+    const processingCard = document.getElementById('processing-card');
+    const resultsCard    = document.getElementById('results-card');
+    const statusMsg      = document.getElementById('status-msg');
+
+    /* ── File selection ────────────────────────── */
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        fileNameEl.textContent = file.name + ' (' + fmtBytes(file.size) + ')';
+        uploadBtn.disabled = false;
+      }
+    });
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) {
+        fileInput.files = e.dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change'));
+      }
+    });
+
+    /* ── Upload ────────────────────────────────── */
+    uploadBtn.addEventListener('click', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      uploadBtn.disabled = true;
+      progressWrap.style.display = 'block';
+      uploadPct.style.display = 'block';
+      resultsCard.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/transcript-upload');
+
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = pct + '%';
+          uploadPct.textContent = 'Uploading... ' + pct + '%';
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const { jobId } = JSON.parse(xhr.responseText);
+          currentJobId = jobId;
+          sessionStorage.setItem('tJobId', jobId);
+          uploadPct.textContent = 'Upload complete — processing...';
+          progressBar.style.width = '100%';
+          processingCard.style.display = 'block';
+          startTracking(jobId);
+          loadRecentJobs();
+        } else {
+          uploadPct.textContent = 'Upload failed. Please try again.';
+          uploadBtn.disabled = false;
+        }
+      };
+
+      xhr.onerror = () => {
+        uploadPct.textContent = 'Network error. Please try again.';
+        uploadBtn.disabled = false;
+      };
+
+      xhr.send(formData);
+    });
+
+    /* ── SSE tracking ──────────────────────────── */
+    function startTracking(jobId) {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource('/transcript-status/' + jobId);
+      sseSource.onmessage = e => {
+        try { applyUpdate(JSON.parse(e.data)); } catch(_) {}
+      };
+      sseSource.onerror = () => {
+        sseSource.close();
+        if (!pollTimer) pollTimer = setInterval(() => pollJob(jobId), 4000);
+      };
+    }
+
+    function pollJob(jobId) {
+      fetch('/api/transcript-jobs/' + jobId)
+        .then(r => r.json())
+        .then(job => {
+          applyUpdate(job);
+          if (job.status === 'done' || job.status === 'failed') {
+            clearInterval(pollTimer); pollTimer = null;
+            if (job.status === 'done') showResults(job);
+          }
+        })
+        .catch(() => {});
+    }
+
+    function applyUpdate(job) {
+      statusMsg.textContent = job.progress || '';
+      setStage(job.status);
+
+      if (job.status === 'done') {
+        if (sseSource) { sseSource.close(); sseSource = null; }
+        // Fetch full payload (SSE sends slim version)
+        fetch('/api/transcript-jobs/' + job.id)
+          .then(r => r.json())
+          .then(full => showResults(full))
+          .catch(() => {});
+        loadRecentJobs();
+      }
+
+      if (job.status === 'failed') {
+        statusMsg.textContent = '❌ ' + (job.error || 'Processing failed');
+        uploadBtn.disabled = false;
+        if (sseSource) { sseSource.close(); sseSource = null; }
+      }
+    }
+
+    function setStage(status) {
+      const stages = ['transcribing', 'generating'];
+      const order  = { transcribing: 0, generating: 1, done: 2, failed: 2 };
+      const idx    = order[status] ?? -1;
+
+      stages.forEach((s, i) => {
+        const el = document.getElementById('stage-' + s);
+        el.className = 'stage';
+        if (status === 'done')   el.classList.add('done');
+        else if (status === 'failed') el.classList.add('failed');
+        else if (i < idx)  el.classList.add('done');
+        else if (i === idx) el.classList.add('active');
+      });
+    }
+
+    /* ── Show results ──────────────────────────── */
+    function showResults(job) {
+      resultData = job;
+      processingCard.style.display = 'none';
+      resultsCard.style.display = 'block';
+
+      // Meta strip
+      const meta = document.getElementById('results-meta');
+      const dur  = job.durationSeconds ? fmtDuration(job.durationSeconds) : '—';
+      const segs = job.segmentCount ?? '—';
+      const words = job.fullText ? job.fullText.trim().split(/\s+/).length : '—';
+      meta.innerHTML = `
+        <span class="meta-pill">⏱ ${dur}</span>
+        <span class="meta-pill">💬 ${words.toLocaleString()} words</span>
+        <span class="meta-pill">🎞 ${segs} segments</span>
+      `;
+
+      // Titles
+      const grid = document.getElementById('titles-grid');
+      grid.innerHTML = '';
+      (job.titles || []).forEach((title, i) => {
+        const card = document.createElement('div');
+        card.className = 'title-card';
+        card.innerHTML = `
+          <span class="title-num">${i + 1}</span>
+          <span class="title-text">${escHtml(title)}</span>
+          <span class="copy-icon">
+            <span class="copy-icon-default">⧉</span>
+            <span class="copy-toast">✓ Copied</span>
+          </span>`;
+        card.addEventListener('click', () => {
+          navigator.clipboard.writeText(title).then(() => {
+            card.classList.add('copied');
+            setTimeout(() => card.classList.remove('copied'), 1800);
+          });
+        });
+        grid.appendChild(card);
+      });
+
+      // Transcript
+      document.getElementById('transcript-box').textContent = job.fullText || '';
+
+      // Captions — show the active format
+      renderCaptionPreview();
+
+      // Downloads
+      const dl = document.getElementById('caption-downloads');
+      dl.innerHTML = `
+        <a href="/transcript-download/${job.id}/srt" class="btn btn-secondary" download>
+          ⬇ Download SRT
+        </a>
+        <a href="/transcript-download/${job.id}/vtt" class="btn btn-secondary" download>
+          ⬇ Download VTT
+        </a>`;
+
+      // Scroll to results
+      resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ── Captions ──────────────────────────────── */
+    document.querySelectorAll('.format-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeFormat = tab.dataset.fmt;
+        renderCaptionPreview();
+      });
+    });
+
+    function renderCaptionPreview() {
+      if (!resultData) return;
+      const preview = document.getElementById('caption-preview');
+      const content = activeFormat === 'srt' ? resultData.srt : resultData.vtt;
+      // Show first ~40 cues only (keep DOM light)
+      const lines = (content || '').split('\n');
+      const maxLines = 160;
+      preview.textContent = lines.slice(0, maxLines).join('\n')
+        + (lines.length > maxLines ? '\n...(truncated — download for full file)' : '');
+    }
+
+    /* ── Copy transcript ───────────────────────── */
+    document.getElementById('copy-transcript-btn').addEventListener('click', () => {
+      if (!resultData?.fullText) return;
+      navigator.clipboard.writeText(resultData.fullText).then(() => {
+        const btn = document.getElementById('copy-transcript-btn');
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Transcript'; }, 2000);
+      });
+    });
+
+    /* ── Recent jobs ───────────────────────────── */
+    function loadRecentJobs() {
+      fetch('/api/transcript-jobs')
+        .then(r => r.json())
+        .then(jobs => {
+          if (!jobs.length) return;
+          const section = document.getElementById('jobs-section');
+          const list    = document.getElementById('jobs-list');
+          section.style.display = 'block';
+          list.innerHTML = jobs.slice(0, 6).map(j => {
+            const badgeCls = j.status === 'done' ? 'badge-done' :
+                             j.status === 'failed' ? 'badge-failed' : 'badge-active';
+            const label = j.status === 'done' ? 'Done' :
+                          j.status === 'failed' ? 'Failed' : 'Processing';
+            const link = j.status === 'done'
+              ? `<a href="#" onclick="loadJob('${j.id}');return false;" style="color:var(--gold);font-size:12px;text-decoration:none;">View</a>`
+              : '';
+            return `<div class="job-row">
+              <span style="color:#ccc">${escHtml(j.originalName || j.id.slice(0,8))}</span>
+              <div style="display:flex;align-items:center;gap:10px;">
+                ${link}
+                <span class="badge ${badgeCls}">${label}</span>
+              </div>
+            </div>`;
+          }).join('');
+        })
+        .catch(() => {});
+    }
+
+    function loadJob(jobId) {
+      fetch('/api/transcript-jobs/' + jobId)
+        .then(r => r.json())
+        .then(job => {
+          if (job.status === 'done') showResults(job);
+        })
+        .catch(() => {});
+    }
+
+    /* ── Utilities ─────────────────────────────── */
+    function fmtBytes(b) {
+      if (b < 1024 ** 2) return (b / 1024).toFixed(1) + ' KB';
+      if (b < 1024 ** 3) return (b / 1024 ** 2).toFixed(1) + ' MB';
+      return (b / 1024 ** 3).toFixed(2) + ' GB';
+    }
+
+    function fmtDuration(s) {
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${sec}s`;
+      return `${sec}s`;
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /* ── Restore in-progress job on reload ─────── */
+    const savedJobId = sessionStorage.getItem('tJobId');
+    if (savedJobId) {
+      fetch('/api/transcript-jobs/' + savedJobId)
+        .then(r => r.json())
+        .then(job => {
+          if (job.status === 'done') {
+            showResults(job);
+          } else if (job.status !== 'failed') {
+            currentJobId = savedJobId;
+            processingCard.style.display = 'block';
+            setStage(job.status);
+            startTracking(savedJobId);
+          }
+        })
+        .catch(() => {});
+    }
+
+    loadRecentJobs();
+  </script>
+</body>
+</html>

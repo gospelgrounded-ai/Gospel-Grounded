@@ -6,6 +6,16 @@ import { config } from "dotenv";
 config();
 
 import { createJob, updateJob, getJob, listJobs, jobEmitter, Job } from "./jobs";
+import {
+  createTranscriptJob,
+  updateTranscriptJob,
+  getTranscriptJob,
+  listTranscriptJobs,
+  transcriptJobEmitter,
+  TranscriptJob,
+} from "./transcript-jobs";
+import { transcribeVideo } from "./transcribe";
+import { generateSRT, generateVTT, generateTitleRecommendations } from "./caption-utils";
 import { runPipeline } from "./workflow";
 import { EditFeatures, GraphicStyleName } from "./types";
 
@@ -162,6 +172,136 @@ app.get("/download/:jobId", (req, res) => {
 // List all jobs (most recent first)
 app.get("/api/jobs", (_req, res) => {
   res.json(listJobs());
+});
+
+// ── Transcript-only workflow ─────────────────────────────────────────────────
+
+async function runTranscriptJob(jobId: string, fsPath: string, originalName: string): Promise<void> {
+  try {
+    updateTranscriptJob(jobId, { status: "transcribing", progress: "Extracting audio and transcribing with Whisper..." });
+
+    const { transcript, duration } = await transcribeVideo(fsPath);
+
+    updateTranscriptJob(jobId, {
+      status: "generating",
+      progress: "Generating captions and title recommendations with Claude...",
+      durationSeconds: Math.round(duration),
+      segmentCount: transcript.segments.length,
+    });
+
+    const [srt, vtt, titles] = await Promise.all([
+      Promise.resolve(generateSRT(transcript.segments)),
+      Promise.resolve(generateVTT(transcript.segments)),
+      generateTitleRecommendations(transcript.fullText),
+    ]);
+
+    updateTranscriptJob(jobId, {
+      status: "done",
+      progress: "Done! Your transcript, captions, and title recommendations are ready.",
+      fullText: transcript.fullText,
+      srt,
+      vtt,
+      titles,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    updateTranscriptJob(jobId, { status: "failed", error: message, progress: `Failed: ${message}` });
+  }
+}
+
+// Upload a video for transcription only (no render pipeline)
+app.post("/transcript-upload", upload.single("video"), (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: "No video file uploaded" });
+    return;
+  }
+
+  const ext = path.extname(req.file.originalname).toLowerCase() || ".mp4";
+  const namedFile = req.file.path + ext;
+  fs.renameSync(req.file.path, namedFile);
+
+  const absolutePath = path.resolve(namedFile);
+  const job = createTranscriptJob(absolutePath, req.file.originalname);
+  res.json({ jobId: job.id });
+
+  runTranscriptJob(job.id, absolutePath, req.file.originalname);
+});
+
+// SSE stream for transcript job status
+app.get("/transcript-status/:jobId", (req, res) => {
+  const { jobId } = req.params;
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const job = getTranscriptJob(jobId);
+  // Strip large payload from SSE updates — client fetches results via /api/transcript-jobs/:id
+  const slim = (j: TranscriptJob) => ({
+    id: j.id, status: j.status, progress: j.progress, error: j.error,
+    durationSeconds: j.durationSeconds, segmentCount: j.segmentCount,
+    titlesCount: j.titles?.length,
+  });
+  if (job) res.write(`data: ${JSON.stringify(slim(job))}\n\n`);
+
+  const heartbeat = setInterval(() => res.write(": ping\n\n"), 20_000);
+
+  const onUpdate = (updated: TranscriptJob) => {
+    res.write(`data: ${JSON.stringify(slim(updated))}\n\n`);
+    if (updated.status === "done" || updated.status === "failed") {
+      clearInterval(heartbeat);
+      res.end();
+    }
+  };
+
+  transcriptJobEmitter.on(`job:${jobId}`, onUpdate);
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    transcriptJobEmitter.off(`job:${jobId}`, onUpdate);
+  });
+});
+
+// JSON polling fallback — also returns full result payload when done
+app.get("/api/transcript-jobs/:jobId", (req, res) => {
+  const job = getTranscriptJob(req.params.jobId);
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+  res.json(job);
+});
+
+// List all transcript jobs
+app.get("/api/transcript-jobs", (_req, res) => {
+  res.json(listTranscriptJobs().map((j) => ({
+    id: j.id, originalName: j.originalName, status: j.status, createdAt: j.createdAt,
+  })));
+});
+
+// Download SRT captions file
+app.get("/transcript-download/:jobId/srt", (req, res) => {
+  const job = getTranscriptJob(req.params.jobId);
+  if (!job?.srt) {
+    res.status(404).send("SRT not ready");
+    return;
+  }
+  const baseName = path.basename(job.originalName, path.extname(job.originalName));
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${baseName}.srt"`);
+  res.send(job.srt);
+});
+
+// Download VTT captions file
+app.get("/transcript-download/:jobId/vtt", (req, res) => {
+  const job = getTranscriptJob(req.params.jobId);
+  if (!job?.vtt) {
+    res.status(404).send("VTT not ready");
+    return;
+  }
+  const baseName = path.basename(job.originalName, path.extname(job.originalName));
+  res.setHeader("Content-Type", "text/vtt; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${baseName}.vtt"`);
+  res.send(job.vtt);
 });
 
 const server = app.listen(PORT, "0.0.0.0", () => {
